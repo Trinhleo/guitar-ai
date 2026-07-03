@@ -63,7 +63,7 @@ Build an intelligent music tutoring system that:
 └────────────────────────┬─────────────────────────────────┘
                          │
 ┌────────────────────────▼──────────────────────────────────┐
-│              Backend API (Node.js/Python)                │
+│              Backend API (Go + chi)                      │
 │  Lessons | Solos | Chords | Audio Processing | Eval     │
 └─┬────────────┬──────────────┬─────────────┬──────────────┬┘
   │            │              │             │              │
@@ -94,16 +94,15 @@ Build an intelligent music tutoring system that:
 
 | Layer | Technologies |
 |-------|--------------|
-| **Frontend** | React, TypeScript, Tailwind CSS, Web Audio API |
-| **Backend** | Node.js/Express or Python/FastAPI |
-| **Real-time** | WebSocket (Socket.io) |
-| **Audio Processing** | Librosa, Essentia, Web Audio API |
-| **Pitch Detection** | PYIN algorithm, FFT analysis |
-| **Database** | PostgreSQL (primary), Redis (cache) |
-| **Storage** | AWS S3 or Google Cloud Storage |
-| **ML/ML** | TensorFlow (optional) |
+| **Frontend** | Flutter (Web, iOS, Android), Riverpod |
+| **Backend** | Go 1.22, chi router, pgx |
+| **Real-time** | WebSocket (planned) |
+| **Audio Processing** | Librosa, Essentia, Web Audio API (planned) |
+| **Pitch Detection** | PYIN algorithm, FFT analysis (planned) |
+| **Database** | PostgreSQL (primary), Redis (cache, planned) |
+| **Storage** | AWS S3 or Google Cloud Storage (planned) |
 | **Deployment** | Docker, Kubernetes, Railway/Render |
-| **API** | REST + WebSocket |
+| **API** | REST (+ WebSocket planned) |
 
 ---
 
@@ -111,90 +110,20 @@ Build an intelligent music tutoring system that:
 
 ```
 guitar-ai/
-├── backend/
-│   ├── src/
-│   │   ├── api/
-│   │   │   ├── instruments.js
-│   │   │   ├── content.js
-│   │   │   ├── lessons.js
-│   │   │   ├── solos.js
-│   │   │   ├── chords.js
-│   │   │   ├── practice.js
-│   │   │   └── stats.js
-│   │   ├── services/
-│   │   │   ├── audioProcessor.js
-│   │   │   ├── pitchDetector.js
-│   │   │   ├── evaluationEngine.js
-│   │   │   ├── instrumentManager.js
-│   │   │   └── feedbackGenerator.js
-│   │   ├── models/
-│   │   │   ├── User.js
-│   │   │   ├── Instrument.js
-│   │   │   ├── MusicalContent.js
-│   │   │   ├── PracticeSession.js
-│   │   │   ├── PerformanceMetrics.js
-│   │   │   └── Achievement.js
-│   │   ├── middleware/
-│   │   │   ├── auth.js
-│   │   │   ├── errorHandler.js
-│   │   │   └── validation.js
-│   │   ├── websocket/
-│   │   │   └── feedbackHandler.js
-│   │   ├── config/
-│   │   │   ├── database.js
-│   │   │   └── instruments.js
-│   │   └── app.js
-│   ├── migrations/
-│   │   ├── 001_create_instruments.sql
-│   │   ├── 002_create_users.sql
-│   │   ├── 003_create_content.sql
-│   │   └── ...
-│   ├── package.json
-│   ├── .env.example
-│   └── Dockerfile
-│
-├── frontend/
-│   ├── src/
-│   │   ├── pages/
-│   │   │   ├── Dashboard.jsx
-│   │   │   ├── InstrumentSelector.jsx
-│   │   │   ├── Library.jsx
-│   │   │   ├── LessonPage.jsx
-│   │   │   ├── SoloPage.jsx
-│   │   │   ├── ChordPage.jsx
-│   │   │   ├── PracticeSession.jsx
-│   │   │   └── Results.jsx
-│   │   ├── components/
-│   │   │   ├── AudioRecorder.jsx
-│   │   │   ├── PitchVisualization.jsx
-│   │   │   ├── PerformanceChart.jsx
-│   │   │   ├── FeedbackPanel.jsx
-│   │   │   └── ProgressTracker.jsx
-│   │   ├── hooks/
-│   │   │   ├── useAudio.js
-│   │   │   ├── usePitchDetection.js
-│   │   │   └── usePractice.js
-│   │   ├── services/
-│   │   │   ├── api.js
-│   │   │   ├── websocket.js
-│   │   │   └── audioService.js
-│   │   ├── styles/
-│   │   ├── App.jsx
-│   │   └── index.jsx
-│   ├── package.json
-│   └── Dockerfile
-│
+├── backend/                    # Go REST API
+│   ├── cmd/server/             # Entrypoint + migrate command
+│   ├── internal/               # api, evaluation, service, config
+│   ├── migrations/             # SQL schema + seed data
+│   └── go.mod
+├── frontend/                   # Flutter monorepo (web + mobile)
+│   ├── apps/
+│   │   └── app_web/            # Flutter Web app
+│   └── packages/
+│       ├── network/            # API client (Go backend)
+│       └── shared_ui/          # Theme + shared widgets
 ├── docs/
-│   ├── ARCHITECTURE.md
-│   ├── API_SPEC.md
-│   ├── SETUP.md
-│   ├── DATABASE.md
-│   ├── INSTRUMENTS.md
-│   └── DEVELOPMENT.md
-│
 ├── docker-compose.yml
-├── .gitignore
-├── .env.example
+├── Makefile
 └── README.md
 ```
 
@@ -204,61 +133,35 @@ guitar-ai/
 
 ### Prerequisites
 
-- Node.js 16+ or Python 3.8+
-- PostgreSQL 12+
-- Docker (optional)
+- Go 1.22+
+- PostgreSQL 16+ (or Docker)
+- Flutter 3.16+ (for frontend)
 - Git
 
 ### Quick Start
 
-#### Option 1: Using Docker (Recommended)
+**1. Backend**
 
 ```bash
-# Clone the repository
 git clone https://github.com/Trinhleo/guitar-ai.git
 cd guitar-ai
-
-# Copy environment variables
 cp .env.example .env
 
-# Start with Docker Compose
-docker-compose up -d
+# Start PostgreSQL (Docker) or use a local instance
+docker compose up -d
 
-# Access the application
-# Frontend: http://localhost:3000
-# Backend: http://localhost:5000
+make migrate   # apply schema + seed data
+make test      # run Go tests
+make run       # API on http://localhost:5000
 ```
 
-#### Option 2: Manual Setup
-
-**Backend Setup:**
+**2. Frontend (Flutter Web)**
 
 ```bash
-cd backend
-
-# Install dependencies
-npm install
-
-# Setup PostgreSQL database
-createdb guitar_ai
-
-# Run migrations
-npm run migrate
-
-# Start the backend server
-npm start
-```
-
-**Frontend Setup:**
-
-```bash
-cd frontend
-
-# Install dependencies
-npm install
-
-# Start the development server
-npm start
+cd frontend/apps/app_web
+flutter pub get
+flutter run -d web-server --web-port 3000 --web-hostname 0.0.0.0
+# Open http://localhost:3000
 ```
 
 ---
@@ -479,13 +382,11 @@ cp .env.example .env
 ### Running Tests
 
 ```bash
-# Backend tests
-cd backend
-npm test
+# Backend
+make test
 
-# Frontend tests
-cd frontend
-npm test
+# Frontend
+cd frontend/apps/app_web && flutter test
 ```
 
 ### Building Docker Images

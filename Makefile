@@ -1,4 +1,4 @@
-.PHONY: test migrate run smoke tidy
+.PHONY: test migrate run smoke tidy frontend-test frontend-run
 
 test:
 	cd backend && GO_ENV=test go test ./... -count=1
@@ -14,3 +14,9 @@ smoke:
 
 tidy:
 	cd backend && go mod tidy
+
+frontend-test:
+	cd frontend/apps/app_web && flutter test
+
+frontend-run:
+	cd frontend/apps/app_web && flutter run -d web-server --web-port 3000 --web-hostname 0.0.0.0

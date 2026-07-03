@@ -6,3 +6,6 @@ dist/
 .DS_Store
 backend/bin/
 backend/server
+**/.dart_tool/
+**/.packages
+**/build/

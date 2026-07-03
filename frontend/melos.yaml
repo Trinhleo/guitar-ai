@@ -1,0 +1,19 @@
+name: guitar_ai_frontend
+description: Guitar AI Tutor Flutter monorepo
+
+packages:
+  - packages/**
+  - apps/**
+
+scripts:
+  bootstrap:
+    exec: flutter pub get
+    description: Install dependencies for all packages
+
+  analyze:
+    exec: flutter analyze
+    description: Analyze all packages
+
+  test:
+    exec: flutter test
+    description: Run tests in all packages
