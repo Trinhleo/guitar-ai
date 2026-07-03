@@ -187,6 +187,43 @@ func (s *Store) GetResults(ctx context.Context, sessionID, userID string) (model
 	return models.ResultsResponse{Session: session, Metrics: &metrics}, nil
 }
 
+type SessionContext struct {
+	ExpectedNotes    []evaluation.Note
+	InstrumentConfig evaluation.InstrumentConfig
+}
+
+func (s *Store) GetSessionContext(ctx context.Context, sessionID, userID string) (SessionContext, error) {
+	var expectedNotesRaw, instrumentConfigRaw []byte
+	err := s.Pool.QueryRow(ctx, `
+		SELECT mc.expected_notes, i.config
+		FROM practice_sessions ps
+		JOIN musical_content mc ON mc.id = ps.content_id
+		JOIN instruments i ON i.id = ps.instrument_id
+		WHERE ps.id = $1 AND ps.user_id = $2`, sessionID, userID).
+		Scan(&expectedNotesRaw, &instrumentConfigRaw)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return SessionContext{}, ErrNotFound
+	}
+	if err != nil {
+		return SessionContext{}, err
+	}
+
+	var expectedNotes []evaluation.Note
+	if err := json.Unmarshal(expectedNotesRaw, &expectedNotes); err != nil {
+		return SessionContext{}, err
+	}
+
+	var instrumentConfig evaluation.InstrumentConfig
+	if err := json.Unmarshal(instrumentConfigRaw, &instrumentConfig); err != nil {
+		return SessionContext{}, err
+	}
+
+	return SessionContext{
+		ExpectedNotes:    expectedNotes,
+		InstrumentConfig: instrumentConfig,
+	}, nil
+}
+
 func (s *Store) ListPracticeHistory(ctx context.Context, userID string, limit, offset int) (models.PracticeHistoryResponse, error) {
 	if limit <= 0 {
 		limit = 20

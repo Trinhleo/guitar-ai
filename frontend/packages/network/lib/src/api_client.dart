@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 import 'models.dart';
 
@@ -164,6 +165,31 @@ class ApiClient {
     return UserProgress.fromJson(
       jsonDecode(response.body) as Map<String, dynamic>,
     );
+  }
+
+  Future<Map<String, dynamic>> uploadPracticeAudio({
+    required String sessionId,
+    required List<int> wavBytes,
+    required String filename,
+  }) async {
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$baseUrl/api/practice/$sessionId/upload'),
+    );
+    if (_token != null) {
+      request.headers['Authorization'] = 'Bearer $_token';
+    }
+    request.files.add(http.MultipartFile.fromBytes(
+      'audio',
+      wavBytes,
+      filename: filename,
+      contentType: MediaType('audio', 'wav'),
+    ));
+
+    final streamed = await request.send();
+    final response = await http.Response.fromStream(streamed);
+    _ensureSuccess(response);
+    return jsonDecode(response.body) as Map<String, dynamic>;
   }
 
   void _ensureSuccess(http.Response response, {int expectedStatus = 200}) {

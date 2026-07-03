@@ -16,7 +16,10 @@ tidy:
 	cd backend && go mod tidy
 
 frontend-test:
-	cd frontend/apps/app_web && flutter test
+	cd frontend/apps/app_web && flutter pub get && flutter test
+
+frontend-mobile-test:
+	cd frontend/apps/app_mobile && flutter pub get && flutter test
 
 frontend-run:
 	cd frontend/apps/app_web && flutter run -d web-server --web-port 3000 --web-hostname 0.0.0.0
