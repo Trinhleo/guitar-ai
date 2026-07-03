@@ -54,12 +54,28 @@ type PerformanceMetrics struct {
 }
 
 type StartSessionRequest struct {
-	UserID       string `json:"userId"`
 	InstrumentID string `json:"instrumentId"`
 }
 
 type StartSessionResponse struct {
 	SessionID string `json:"sessionId"`
+}
+
+type RegisterRequest struct {
+	Email       string `json:"email"`
+	Password    string `json:"password"`
+	DisplayName string `json:"displayName,omitempty"`
+}
+
+type LoginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type AuthResponse struct {
+	Token  string `json:"token"`
+	UserID string `json:"userId"`
+	Email  string `json:"email"`
 }
 
 type EvaluateRequest struct {

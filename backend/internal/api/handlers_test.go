@@ -9,22 +9,23 @@ import (
 	"os"
 	"testing"
 
+	"github.com/google/uuid"
+
 	"github.com/Trinhleo/guitar-ai/backend/internal/api"
 	"github.com/Trinhleo/guitar-ai/backend/internal/config"
 	"github.com/Trinhleo/guitar-ai/backend/internal/db"
 	"github.com/Trinhleo/guitar-ai/backend/internal/evaluation"
 	"github.com/Trinhleo/guitar-ai/backend/internal/migrate"
+	"github.com/Trinhleo/guitar-ai/backend/internal/models"
 	"github.com/Trinhleo/guitar-ai/backend/internal/service"
 )
 
-const (
-	demoUser  = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
-	contentID = "11111111-1111-1111-1111-111111111111"
-)
+const contentID = "11111111-1111-1111-1111-111111111111"
 
 func testRouter(t *testing.T) http.Handler {
 	t.Helper()
 	_ = os.Setenv("GO_ENV", "test")
+	_ = os.Setenv("JWT_SECRET", "test-jwt-secret-key")
 
 	cfg := config.Load()
 	ctx := context.Background()
@@ -38,7 +39,37 @@ func testRouter(t *testing.T) http.Handler {
 		t.Fatalf("migrate: %v", err)
 	}
 
-	return api.NewRouter(&service.Store{Pool: pool})
+	return api.NewRouter(&service.Store{Pool: pool}, cfg)
+}
+
+func uniqueEmail(prefix string) string {
+	return prefix + "-" + uuid.NewString() + "@example.com"
+}
+
+func registerUser(t *testing.T, router http.Handler, email, password string) models.AuthResponse {
+	t.Helper()
+	body, _ := json.Marshal(map[string]string{
+		"email":    email,
+		"password": password,
+	})
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/register", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("register status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+
+	var resp models.AuthResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("decode register: %v", err)
+	}
+	return resp
+}
+
+func authHeader(token string) string {
+	return "Bearer " + token
 }
 
 func TestHealth(t *testing.T) {
@@ -57,6 +88,67 @@ func TestHealth(t *testing.T) {
 	}
 	if body["status"] != "ok" {
 		t.Fatalf("status = %q, want ok", body["status"])
+	}
+}
+
+func TestAuthRegisterAndLogin(t *testing.T) {
+	router := testRouter(t)
+	email := uniqueEmail("student")
+
+	registered := registerUser(t, router, email, "password123")
+	if registered.Token == "" || registered.UserID == "" {
+		t.Fatalf("expected token and userId, got %+v", registered)
+	}
+
+	loginBody, _ := json.Marshal(map[string]string{
+		"email":    email,
+		"password": "password123",
+	})
+	loginReq := httptest.NewRequest(http.MethodPost, "/api/auth/login", bytes.NewReader(loginBody))
+	loginReq.Header.Set("Content-Type", "application/json")
+	loginRec := httptest.NewRecorder()
+	router.ServeHTTP(loginRec, loginReq)
+
+	if loginRec.Code != http.StatusOK {
+		t.Fatalf("login status = %d, body = %s", loginRec.Code, loginRec.Body.String())
+	}
+}
+
+func TestAuthRegisterDuplicateEmail(t *testing.T) {
+	router := testRouter(t)
+	email := uniqueEmail("dup")
+	registerUser(t, router, email, "password123")
+
+	body, _ := json.Marshal(map[string]string{
+		"email":    email,
+		"password": "password456",
+	})
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/register", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("status = %d, want 409", rec.Code)
+	}
+}
+
+func TestAuthLoginInvalidCredentials(t *testing.T) {
+	router := testRouter(t)
+	email := uniqueEmail("wrong")
+	registerUser(t, router, email, "password123")
+
+	body, _ := json.Marshal(map[string]string{
+		"email":    email,
+		"password": "badpassword",
+	})
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/login", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want 401", rec.Code)
 	}
 }
 
@@ -136,20 +228,32 @@ func TestContentAPI(t *testing.T) {
 	})
 }
 
-func TestPracticeAPI(t *testing.T) {
+func TestPracticeAPIRequiresAuth(t *testing.T) {
 	router := testRouter(t)
 
-	startBody, _ := json.Marshal(map[string]string{
-		"userId":       demoUser,
-		"instrumentId": "guitar",
-	})
+	req := httptest.NewRequest(http.MethodPost, "/api/practice/start/"+contentID, bytes.NewReader([]byte(`{}`)))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want 401", rec.Code)
+	}
+}
+
+func TestPracticeAPI(t *testing.T) {
+	router := testRouter(t)
+	auth := registerUser(t, router, uniqueEmail("practice"), "password123")
+
+	startBody, _ := json.Marshal(map[string]string{"instrumentId": "guitar"})
 	startReq := httptest.NewRequest(http.MethodPost, "/api/practice/start/"+contentID, bytes.NewReader(startBody))
 	startReq.Header.Set("Content-Type", "application/json")
+	startReq.Header.Set("Authorization", authHeader(auth.Token))
 	startRec := httptest.NewRecorder()
 	router.ServeHTTP(startRec, startReq)
 
 	if startRec.Code != http.StatusCreated {
-		t.Fatalf("start status = %d, want 201", startRec.Code)
+		t.Fatalf("start status = %d, want 201, body = %s", startRec.Code, startRec.Body.String())
 	}
 
 	var startResp map[string]string
@@ -170,6 +274,7 @@ func TestPracticeAPI(t *testing.T) {
 	})
 	evalReq := httptest.NewRequest(http.MethodPost, "/api/practice/"+sessionID+"/evaluate", bytes.NewReader(evalBody))
 	evalReq.Header.Set("Content-Type", "application/json")
+	evalReq.Header.Set("Authorization", authHeader(auth.Token))
 	evalRec := httptest.NewRecorder()
 	router.ServeHTTP(evalRec, evalReq)
 
@@ -186,6 +291,7 @@ func TestPracticeAPI(t *testing.T) {
 	}
 
 	resultsReq := httptest.NewRequest(http.MethodGet, "/api/practice/"+sessionID+"/results", nil)
+	resultsReq.Header.Set("Authorization", authHeader(auth.Token))
 	resultsRec := httptest.NewRecorder()
 	router.ServeHTTP(resultsRec, resultsReq)
 
@@ -204,9 +310,11 @@ func TestPracticeAPI(t *testing.T) {
 
 func TestEvaluateMissingPlayedNotes(t *testing.T) {
 	router := testRouter(t)
+	auth := registerUser(t, router, uniqueEmail("missing-notes"), "password123")
 
 	startReq := httptest.NewRequest(http.MethodPost, "/api/practice/start/"+contentID, bytes.NewReader([]byte(`{}`)))
 	startReq.Header.Set("Content-Type", "application/json")
+	startReq.Header.Set("Authorization", authHeader(auth.Token))
 	startRec := httptest.NewRecorder()
 	router.ServeHTTP(startRec, startReq)
 
@@ -215,10 +323,35 @@ func TestEvaluateMissingPlayedNotes(t *testing.T) {
 
 	evalReq := httptest.NewRequest(http.MethodPost, "/api/practice/"+startResp["sessionId"]+"/evaluate", bytes.NewReader([]byte(`{}`)))
 	evalReq.Header.Set("Content-Type", "application/json")
+	evalReq.Header.Set("Authorization", authHeader(auth.Token))
 	evalRec := httptest.NewRecorder()
 	router.ServeHTTP(evalRec, evalReq)
 
 	if evalRec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400", evalRec.Code)
+	}
+}
+
+func TestPracticeSessionOwnership(t *testing.T) {
+	router := testRouter(t)
+	owner := registerUser(t, router, uniqueEmail("owner"), "password123")
+	other := registerUser(t, router, uniqueEmail("other"), "password123")
+
+	startReq := httptest.NewRequest(http.MethodPost, "/api/practice/start/"+contentID, bytes.NewReader([]byte(`{}`)))
+	startReq.Header.Set("Content-Type", "application/json")
+	startReq.Header.Set("Authorization", authHeader(owner.Token))
+	startRec := httptest.NewRecorder()
+	router.ServeHTTP(startRec, startReq)
+
+	var startResp map[string]string
+	_ = json.Unmarshal(startRec.Body.Bytes(), &startResp)
+
+	resultsReq := httptest.NewRequest(http.MethodGet, "/api/practice/"+startResp["sessionId"]+"/results", nil)
+	resultsReq.Header.Set("Authorization", authHeader(other.Token))
+	resultsRec := httptest.NewRecorder()
+	router.ServeHTTP(resultsRec, resultsReq)
+
+	if resultsRec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want 404 for other user's session", resultsRec.Code)
 	}
 }

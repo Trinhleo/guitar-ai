@@ -5,20 +5,41 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
+	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func Run(ctx context.Context, pool *pgxpool.Pool) error {
-	sql, err := os.ReadFile(migrationPath())
+	dir := migrationsDir()
+	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return err
 	}
-	_, err = pool.Exec(ctx, string(sql))
-	return err
+
+	var files []string
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".sql") {
+			continue
+		}
+		files = append(files, entry.Name())
+	}
+	sort.Strings(files)
+
+	for _, name := range files {
+		sql, err := os.ReadFile(filepath.Join(dir, name))
+		if err != nil {
+			return err
+		}
+		if _, err := pool.Exec(ctx, string(sql)); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-func migrationPath() string {
+func migrationsDir() string {
 	_, filename, _, _ := runtime.Caller(0)
-	return filepath.Join(filepath.Dir(filename), "../../migrations/001_initial.sql")
+	return filepath.Join(filepath.Dir(filename), "../../migrations")
 }
