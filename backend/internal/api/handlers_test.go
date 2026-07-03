@@ -534,3 +534,55 @@ func sampleWAV(t *testing.T, freq float64, durationSec float64) []byte {
 
 	return data
 }
+
+func TestPracticeResultsIncludesPlayedNotes(t *testing.T) {
+	router := testRouter(t)
+	auth := registerUser(t, router, uniqueEmail("results-detail"), "password123")
+
+	startBody, _ := json.Marshal(map[string]string{"instrumentId": "guitar"})
+	startReq := httptest.NewRequest(http.MethodPost, "/api/practice/start/"+contentID, bytes.NewReader(startBody))
+	startReq.Header.Set("Content-Type", "application/json")
+	startReq.Header.Set("Authorization", authHeader(auth.Token))
+	startRec := httptest.NewRecorder()
+	router.ServeHTTP(startRec, startReq)
+
+	var startResp map[string]string
+	_ = json.Unmarshal(startRec.Body.Bytes(), &startResp)
+	sessionID := startResp["sessionId"]
+
+	played := []evaluation.Note{
+		{Note: "E4", StartMs: 0, DurationMs: 500},
+		{Note: "E4", StartMs: 600, DurationMs: 500},
+	}
+	evalBody, _ := json.Marshal(map[string]any{"playedNotes": played})
+	evalReq := httptest.NewRequest(http.MethodPost, "/api/practice/"+sessionID+"/evaluate", bytes.NewReader(evalBody))
+	evalReq.Header.Set("Content-Type", "application/json")
+	evalReq.Header.Set("Authorization", authHeader(auth.Token))
+	evalRec := httptest.NewRecorder()
+	router.ServeHTTP(evalRec, evalReq)
+
+	resultsReq := httptest.NewRequest(http.MethodGet, "/api/practice/"+sessionID+"/results", nil)
+	resultsReq.Header.Set("Authorization", authHeader(auth.Token))
+	resultsRec := httptest.NewRecorder()
+	router.ServeHTTP(resultsRec, resultsReq)
+
+	if resultsRec.Code != http.StatusOK {
+		t.Fatalf("results status = %d, body = %s", resultsRec.Code, resultsRec.Body.String())
+	}
+
+	var results map[string]any
+	if err := json.Unmarshal(resultsRec.Body.Bytes(), &results); err != nil {
+		t.Fatalf("decode results: %v", err)
+	}
+	if results["contentTitle"] == nil || results["contentTitle"] == "" {
+		t.Fatal("expected contentTitle in results")
+	}
+	playedNotes := results["playedNotes"].([]any)
+	if len(playedNotes) != len(played) {
+		t.Fatalf("playedNotes len = %d, want %d", len(playedNotes), len(played))
+	}
+	expectedNotes := results["expectedNotes"].([]any)
+	if len(expectedNotes) == 0 {
+		t.Fatal("expected expectedNotes in results")
+	}
+}

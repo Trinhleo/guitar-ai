@@ -95,15 +95,14 @@ Build an intelligent music tutoring system that:
 
 | Layer | Technologies |
 |-------|--------------|
-| **Frontend** | Flutter (Web, iOS, Android), Riverpod |
-| **Backend** | Go 1.22, chi router, pgx |
-| **Real-time** | WebSocket (planned) |
-| **Audio Processing** | Librosa, Essentia, Web Audio API (planned) |
-| **Pitch Detection** | PYIN algorithm, FFT analysis (planned) |
-| **Database** | PostgreSQL (primary), Redis (cache, planned) |
-| **Storage** | AWS S3 or Google Cloud Storage (planned) |
-| **Deployment** | Docker, Kubernetes, Railway/Render |
-| **API** | REST (+ WebSocket planned) |
+| **Frontend** | Flutter (Web, iOS, Android), shared packages (`app_shared`, `network`, `shared_ui`) |
+| **Backend** | Go 1.25, chi router, pgx |
+| **Real-time** | WebSocket (gorilla/websocket) |
+| **Audio Processing** | Go WAV parser + autocorrelation pitch detection |
+| **Pitch Detection** | Autocorrelation with silence gate (server-side) |
+| **Database** | PostgreSQL |
+| **Deployment** | Docker Compose |
+| **API** | REST + WebSocket |
 
 ---
 
@@ -118,8 +117,10 @@ guitar-ai/
 │   └── go.mod
 ├── frontend/                   # Flutter monorepo (web + mobile)
 │   ├── apps/
-│   │   └── app_web/            # Flutter Web app
+│   │   ├── app_web/            # Flutter Web app
+│   │   └── app_mobile/         # Flutter iOS + Android app
 │   └── packages/
+│       ├── app_shared/         # Shared screens + auth
 │       ├── network/            # API client (Go backend)
 │       └── shared_ui/          # Theme + shared widgets
 ├── docs/
@@ -299,30 +300,30 @@ See [API_SPEC.md](docs/API_SPEC.md) for complete API documentation.
 ## 🛣️ Implementation Roadmap
 
 ### Phase 1: MVP (Weeks 1-3)
-- [ ] Project setup & database schema
-- [ ] User authentication
-- [ ] Instrument management system
-- [ ] Basic audio recording
-- [ ] Pitch detection (Librosa)
-- [ ] Simple scoring algorithm
+- [x] Project setup & database schema
+- [x] User authentication
+- [x] Instrument management system
+- [x] Basic audio recording
+- [x] Pitch detection (Go autocorrelation)
+- [x] Simple scoring algorithm
 
 ### Phase 2: Core Features (Weeks 4-6)
-- [ ] Real-time pitch visualization
-- [ ] Detailed performance metrics
-- [ ] Practice history & dashboard
+- [x] Real-time pitch visualization
+- [x] Detailed performance metrics
+- [x] Practice history & dashboard
 - [ ] Technique-specific feedback
-- [ ] Multiple speed variations
-- [ ] WebSocket real-time feedback
+- [x] Multiple speed variations
+- [x] WebSocket real-time feedback
 
 ### Phase 3: Enhancement (Weeks 7-9)
 - [ ] Advanced AI insights
-- [ ] Achievements & gamification
-- [ ] Multiple instrument support refinement
+- [x] Achievements & gamification
+- [x] Multiple instrument support refinement
 - [ ] Performance optimization
-- [ ] Mobile-responsive UI
+- [x] Mobile-responsive UI
 
 ### Phase 4: Scale & Polish (Weeks 10+)
-- [ ] Mobile app (React Native)
+- [x] Mobile app (Flutter iOS/Android)
 - [ ] Advanced recommendation engine
 - [ ] Social features
 - [ ] Cloud deployment

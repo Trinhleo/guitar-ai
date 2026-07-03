@@ -141,6 +141,11 @@ func (s *Store) EvaluateSession(ctx context.Context, sessionID, userID string, p
 		return evaluation.Scores{}, err
 	}
 
+	playedNotesJSON, err := json.Marshal(playedNotes)
+	if err != nil {
+		return evaluation.Scores{}, err
+	}
+
 	_, err = s.Pool.Exec(ctx, `UPDATE practice_sessions SET overall_score = $1 WHERE id = $2`, scores.OverallScore, sessionID)
 	if err != nil {
 		return evaluation.Scores{}, err
@@ -148,9 +153,9 @@ func (s *Store) EvaluateSession(ctx context.Context, sessionID, userID string, p
 
 	_, err = s.Pool.Exec(ctx, `
 		INSERT INTO performance_metrics
-		(session_id, pitch_accuracy, timing_accuracy, technique_score, expression_score, consistency_score, instrument_specific_metrics)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-		sessionID, scores.PitchAccuracy, scores.TimingAccuracy, scores.TechniqueScore, scores.ExpressionScore, scores.ConsistencyScore, metricsJSON,
+		(session_id, pitch_accuracy, timing_accuracy, technique_score, expression_score, consistency_score, instrument_specific_metrics, played_notes)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+		sessionID, scores.PitchAccuracy, scores.TimingAccuracy, scores.TechniqueScore, scores.ExpressionScore, scores.ConsistencyScore, metricsJSON, playedNotesJSON,
 	)
 	if err != nil {
 		return evaluation.Scores{}, err
@@ -161,10 +166,16 @@ func (s *Store) EvaluateSession(ctx context.Context, sessionID, userID string, p
 
 func (s *Store) GetResults(ctx context.Context, sessionID, userID string) (models.ResultsResponse, error) {
 	var session models.PracticeSession
+	var contentTitle, contentType string
+	var expectedNotesRaw []byte
 	err := s.Pool.QueryRow(ctx, `
-		SELECT id, user_id, content_id, instrument_id, overall_score, created_at
-		FROM practice_sessions WHERE id = $1 AND user_id = $2`, sessionID, userID).
-		Scan(&session.ID, &session.UserID, &session.ContentID, &session.InstrumentID, &session.OverallScore, &session.CreatedAt)
+		SELECT ps.id, ps.user_id, ps.content_id, ps.instrument_id, ps.overall_score, ps.created_at,
+		       mc.title, mc.type, mc.expected_notes
+		FROM practice_sessions ps
+		JOIN musical_content mc ON mc.id = ps.content_id
+		WHERE ps.id = $1 AND ps.user_id = $2`, sessionID, userID).
+		Scan(&session.ID, &session.UserID, &session.ContentID, &session.InstrumentID, &session.OverallScore, &session.CreatedAt,
+			&contentTitle, &contentType, &expectedNotesRaw)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return models.ResultsResponse{}, ErrNotFound
 	}
@@ -172,19 +183,45 @@ func (s *Store) GetResults(ctx context.Context, sessionID, userID string) (model
 		return models.ResultsResponse{}, err
 	}
 
+	var expectedNotes []evaluation.Note
+	if err := json.Unmarshal(expectedNotesRaw, &expectedNotes); err != nil {
+		return models.ResultsResponse{}, err
+	}
+
 	var metrics models.PerformanceMetrics
+	var playedNotesRaw []byte
 	err = s.Pool.QueryRow(ctx, `
-		SELECT id, session_id, pitch_accuracy, timing_accuracy, technique_score, expression_score, consistency_score, instrument_specific_metrics
+		SELECT id, session_id, pitch_accuracy, timing_accuracy, technique_score, expression_score, consistency_score, instrument_specific_metrics, played_notes
 		FROM performance_metrics WHERE session_id = $1 ORDER BY id DESC LIMIT 1`, sessionID).
-		Scan(&metrics.ID, &metrics.SessionID, &metrics.PitchAccuracy, &metrics.TimingAccuracy, &metrics.TechniqueScore, &metrics.ExpressionScore, &metrics.ConsistencyScore, &metrics.InstrumentSpecificMetrics)
+		Scan(&metrics.ID, &metrics.SessionID, &metrics.PitchAccuracy, &metrics.TimingAccuracy, &metrics.TechniqueScore, &metrics.ExpressionScore, &metrics.ConsistencyScore, &metrics.InstrumentSpecificMetrics, &playedNotesRaw)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return models.ResultsResponse{Session: session, Metrics: nil}, nil
+		return models.ResultsResponse{
+			Session:       session,
+			ContentTitle:  contentTitle,
+			ContentType:   contentType,
+			ExpectedNotes: expectedNotes,
+			PlayedNotes:   []evaluation.Note{},
+		}, nil
 	}
 	if err != nil {
 		return models.ResultsResponse{}, err
 	}
 
-	return models.ResultsResponse{Session: session, Metrics: &metrics}, nil
+	var playedNotes []evaluation.Note
+	if len(playedNotesRaw) > 0 {
+		if err := json.Unmarshal(playedNotesRaw, &playedNotes); err != nil {
+			return models.ResultsResponse{}, err
+		}
+	}
+
+	return models.ResultsResponse{
+		Session:       session,
+		ContentTitle:  contentTitle,
+		ContentType:   contentType,
+		Metrics:       &metrics,
+		ExpectedNotes: expectedNotes,
+		PlayedNotes:   playedNotes,
+	}, nil
 }
 
 type SessionContext struct {

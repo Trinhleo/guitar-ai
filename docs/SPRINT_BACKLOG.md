@@ -78,6 +78,35 @@ Requires `gh auth login` with `repo` scope.
 
 ---
 
+## Sprint 5 — Session Detail & Quality
+
+### #21 — Session detail screen
+- **Priority:** P0 · **Area:** backend + frontend
+- **Goal:** History → full session view with expected vs played notes
+- **Acceptance:**
+  - [x] Store `played_notes` on evaluate
+  - [x] Extended `GET /api/practice/:sessionId/results`
+  - [x] SessionDetailScreen in app_shared
+
+### #22 — Pitch detection improvements
+- **Priority:** P0 · **Area:** backend
+- **Goal:** Better note segmentation from WAV
+- **Acceptance:**
+  - [x] Silence gate (RMS threshold)
+  - [x] Correlation confidence threshold
+  - [x] Merge adjacent same-pitch notes
+  - [x] Unit tests
+
+### #23 — README sync
+- **Priority:** P1 · **Area:** docs
+- **Goal:** Reflect current stack and roadmap progress
+- **Acceptance:**
+  - [x] Tech stack updated
+  - [x] Project structure updated
+  - [x] Roadmap checkboxes synced
+
+---
+
 ## Sprint 4 — Refactor & Multi-Instrument
 
 ### #18 — Refactor shared screens (`app_shared`)

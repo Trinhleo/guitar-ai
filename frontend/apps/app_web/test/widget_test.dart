@@ -55,17 +55,31 @@ void main() {
     });
   });
 
-  group('Achievement', () {
-    test('parses achievement payload', () {
-      final achievement = Achievement.fromJson({
-        'id': 'first_session',
-        'title': 'First Steps',
-        'description': 'Complete your first practice session',
-        'unlocked': true,
+  group('PracticeResults', () {
+    test('parses session detail payload', () {
+      final results = PracticeResults.fromJson({
+        'contentTitle': 'Open String Exercise',
+        'contentType': 'lesson',
+        'session': {
+          'overall_score': 95.0,
+          'created_at': '2026-07-03T00:00:00Z',
+        },
+        'metrics': {
+          'pitch_accuracy': 98.0,
+          'timing_accuracy': 92.0,
+          'technique_score': 90.0,
+        },
+        'expectedNotes': [
+          {'note': 'E4', 'startMs': 0, 'durationMs': 500},
+        ],
+        'playedNotes': [
+          {'note': 'E4', 'startMs': 0, 'durationMs': 500},
+        ],
       });
 
-      expect(achievement.unlocked, isTrue);
-      expect(achievement.title, 'First Steps');
+      expect(results.contentTitle, 'Open String Exercise');
+      expect(results.playedNotes.length, 1);
+      expect(results.expectedNotes.length, 1);
     });
   });
 }
