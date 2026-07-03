@@ -35,6 +35,7 @@ dependencies:
     path: ../../packages/network
   shared_ui:
     path: ../../packages/shared_ui
+  shared_preferences: ^2.3.3
 
 dev_dependencies:
   flutter_test:

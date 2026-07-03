@@ -1,12 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:network/network.dart';
 
+import '../services/auth_store.dart';
 import 'library_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, required this.api});
+  const HomeScreen({
+    super.key,
+    required this.api,
+    required this.auth,
+    required this.onLogout,
+  });
 
   final ApiClient api;
+  final AuthStore auth;
+  final Future<void> Function() onLogout;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -26,6 +34,23 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Guitar AI Tutor'),
+        actions: [
+          if (widget.auth.email != null)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Text(
+                  widget.auth.email!,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+            ),
+          IconButton(
+            tooltip: 'Sign out',
+            onPressed: widget.onLogout,
+            icon: const Icon(Icons.logout),
+          ),
+        ],
       ),
       body: FutureBuilder<List<Instrument>>(
         future: _instrumentsFuture,
