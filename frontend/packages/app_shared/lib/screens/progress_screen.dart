@@ -35,6 +35,15 @@ class _ProgressScreenState extends State<ProgressScreen> {
           }
 
           final progress = snapshot.data!;
+          final pitchTrend = progress.trends
+              .where((point) => point.pitchAccuracy != null)
+              .map((point) => point.pitchAccuracy!)
+              .toList();
+          final timingTrend = progress.trends
+              .where((point) => point.timingAccuracy != null)
+              .map((point) => point.timingAccuracy!)
+              .toList();
+
           return ListView(
             padding: const EdgeInsets.all(24),
             children: [
@@ -66,6 +75,23 @@ class _ProgressScreenState extends State<ProgressScreen> {
                       value: progress.bestScore!.toStringAsFixed(1),
                     ),
                 ],
+              ),
+              const SizedBox(height: 32),
+              Text(
+                'Trends',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 16),
+              ScoreTrendChart(
+                label: 'Pitch accuracy over sessions',
+                values: pitchTrend,
+                color: AppTheme.primaryColor,
+              ),
+              const SizedBox(height: 24),
+              ScoreTrendChart(
+                label: 'Timing accuracy over sessions',
+                values: timingTrend,
+                color: AppTheme.secondaryColor,
               ),
               const SizedBox(height: 32),
               Text(

@@ -1,10 +1,7 @@
+import 'package:app_shared/app_shared.dart';
 import 'package:flutter/material.dart';
 import 'package:network/network.dart';
 import 'package:shared_ui/shared_ui.dart';
-
-import 'screens/home_screen.dart';
-import 'screens/login_screen.dart';
-import 'services/auth_store.dart';
 
 void main() {
   runApp(const GuitarAiApp());

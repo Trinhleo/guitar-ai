@@ -331,6 +331,39 @@ func (s *Store) GetUserProgress(ctx context.Context, userID string) (models.User
 		}
 		sessionsByType[contentType] = count
 	}
+	if err := typeRows.Err(); err != nil {
+		return models.UserProgress{}, err
+	}
+
+	trendRows, err := s.Pool.Query(ctx, `
+		SELECT ps.id, ps.created_at, ps.overall_score, pm.pitch_accuracy, pm.timing_accuracy
+		FROM practice_sessions ps
+		LEFT JOIN performance_metrics pm ON pm.session_id = ps.id
+		WHERE ps.user_id = $1 AND ps.overall_score IS NOT NULL
+		ORDER BY ps.created_at ASC
+		LIMIT 20`, userID)
+	if err != nil {
+		return models.UserProgress{}, err
+	}
+	defer trendRows.Close()
+
+	trends := []models.ProgressTrendPoint{}
+	for trendRows.Next() {
+		var point models.ProgressTrendPoint
+		if err := trendRows.Scan(
+			&point.SessionID,
+			&point.CreatedAt,
+			&point.OverallScore,
+			&point.PitchAccuracy,
+			&point.TimingAccuracy,
+		); err != nil {
+			return models.UserProgress{}, err
+		}
+		trends = append(trends, point)
+	}
+	if err := trendRows.Err(); err != nil {
+		return models.UserProgress{}, err
+	}
 
 	return models.UserProgress{
 		TotalSessions:  totalSessions,
@@ -339,7 +372,8 @@ func (s *Store) GetUserProgress(ctx context.Context, userID string) (models.User
 		BestScore:      bestScore,
 		RecentScores:   recentScores,
 		SessionsByType: sessionsByType,
-	}, typeRows.Err()
+		Trends:         trends,
+	}, nil
 }
 
 func (s *Store) GetUserAchievements(ctx context.Context, userID string) ([]models.Achievement, error) {

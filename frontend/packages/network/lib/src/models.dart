@@ -199,6 +199,7 @@ class UserProgress {
     required this.bestScore,
     required this.recentScores,
     required this.sessionsByType,
+    required this.trends,
   });
 
   final int totalSessions;
@@ -207,6 +208,7 @@ class UserProgress {
   final double? bestScore;
   final List<double> recentScores;
   final Map<String, int> sessionsByType;
+  final List<ProgressTrendPoint> trends;
 
   factory UserProgress.fromJson(Map<String, dynamic> json) {
     final recent = (json['recentScores'] as List<dynamic>? ?? [])
@@ -217,6 +219,9 @@ class UserProgress {
     byTypeRaw.forEach((key, value) {
       byType[key] = value as int;
     });
+    final trends = (json['trends'] as List<dynamic>? ?? [])
+        .map((item) => ProgressTrendPoint.fromJson(item as Map<String, dynamic>))
+        .toList();
 
     return UserProgress(
       totalSessions: json['totalSessions'] as int? ?? 0,
@@ -225,6 +230,33 @@ class UserProgress {
       bestScore: (json['bestScore'] as num?)?.toDouble(),
       recentScores: recent,
       sessionsByType: byType,
+      trends: trends,
+    );
+  }
+}
+
+class ProgressTrendPoint {
+  ProgressTrendPoint({
+    required this.sessionId,
+    required this.createdAt,
+    required this.overallScore,
+    required this.pitchAccuracy,
+    required this.timingAccuracy,
+  });
+
+  final String sessionId;
+  final String createdAt;
+  final double? overallScore;
+  final double? pitchAccuracy;
+  final double? timingAccuracy;
+
+  factory ProgressTrendPoint.fromJson(Map<String, dynamic> json) {
+    return ProgressTrendPoint(
+      sessionId: json['sessionId'] as String,
+      createdAt: json['createdAt'] as String,
+      overallScore: (json['overallScore'] as num?)?.toDouble(),
+      pitchAccuracy: (json['pitchAccuracy'] as num?)?.toDouble(),
+      timingAccuracy: (json['timingAccuracy'] as num?)?.toDouble(),
     );
   }
 }

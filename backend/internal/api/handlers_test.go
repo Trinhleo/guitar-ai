@@ -174,6 +174,17 @@ func TestInstrumentsAPI(t *testing.T) {
 		if len(items) == 0 || items[0]["id"] != "guitar" {
 			t.Fatalf("expected guitar instrument, got %+v", items)
 		}
+
+		hasPiano := false
+		for _, item := range items {
+			if item["id"] == "piano" {
+				hasPiano = true
+				break
+			}
+		}
+		if !hasPiano {
+			t.Fatal("expected piano instrument in list")
+		}
 	})
 
 	t.Run("get guitar", func(t *testing.T) {
@@ -416,6 +427,9 @@ func TestPracticeHistoryAndProgress(t *testing.T) {
 	}
 	if int(progress["totalSessions"].(float64)) < 1 {
 		t.Fatalf("expected totalSessions >= 1, got %+v", progress)
+	}
+	if _, ok := progress["trends"]; !ok {
+		t.Fatal("expected trends in progress response")
 	}
 
 	achievementsReq := httptest.NewRequest(http.MethodGet, "/api/stats/achievements", nil)
