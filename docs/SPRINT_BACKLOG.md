@@ -75,6 +75,37 @@ Requires `gh auth login` with `repo` scope.
 | app_shared refactor | ✅ Done |
 | Progress charts | ✅ Done |
 | Piano + more content | ✅ Done |
+| Session detail + pitch quality | ✅ Done |
+| Technique hints + recommendations | ✅ Done |
+| Docker web + E2E tests | ✅ Done |
+
+---
+
+## Sprint 6 — Deploy & Recommendations
+
+### #24 — Technique feedback hints
+- **Priority:** P0 · **Area:** backend + frontend
+- **Goal:** Actionable tips after practice based on scores
+- **Acceptance:**
+  - [x] `techniqueHints` in evaluate/results responses
+  - [x] Shown on practice + session detail screens
+  - [x] Unit tests
+
+### #25 — Content recommendations
+- **Priority:** P1 · **Area:** backend + frontend
+- **Goal:** Suggest next lessons based on history
+- **Acceptance:**
+  - [x] `GET /api/content/recommendations`
+  - [x] Home screen "Recommended for you" section
+  - [x] Integration tests
+
+### #26 — Docker full stack + E2E
+- **Priority:** P1 · **Area:** infra
+- **Goal:** `docker compose up` runs web + API; Playwright smoke tests
+- **Acceptance:**
+  - [x] Flutter web Dockerfile + nginx proxy
+  - [x] `web` service in docker-compose
+  - [x] Playwright API flow tests via `make e2e-test`
 
 ---
 

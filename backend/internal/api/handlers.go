@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/Trinhleo/guitar-ai/backend/internal/auth"
+	"github.com/Trinhleo/guitar-ai/backend/internal/evaluation"
 	"github.com/Trinhleo/guitar-ai/backend/internal/models"
 	"github.com/Trinhleo/guitar-ai/backend/internal/service"
 	"github.com/go-chi/chi/v5"
@@ -75,6 +76,28 @@ func (h *Handler) GetContent(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, item)
 }
 
+func (h *Handler) ListRecommendations(w http.ResponseWriter, r *http.Request) {
+	userID, err := auth.UserIDFromRequest(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	limit := 3
+	if value := r.URL.Query().Get("limit"); value != "" {
+		if parsed, err := strconv.Atoi(value); err == nil {
+			limit = parsed
+		}
+	}
+
+	items, err := h.Store.GetRecommendations(r.Context(), userID, r.URL.Query().Get("instrument"), limit)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to get recommendations")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"items": items})
+}
+
 func (h *Handler) StartPractice(w http.ResponseWriter, r *http.Request) {
 	userID, err := auth.UserIDFromRequest(r)
 	if err != nil {
@@ -131,7 +154,7 @@ func (h *Handler) EvaluatePractice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, scores)
+	writeJSON(w, http.StatusOK, evaluation.ScoresWithHints(scores))
 }
 
 func (h *Handler) GetPracticeResults(w http.ResponseWriter, r *http.Request) {

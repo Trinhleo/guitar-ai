@@ -265,6 +265,17 @@ class _PracticeScreenState extends State<PracticeScreen> {
                   ScoreChip(label: 'Technique', value: _scores!.techniqueScore),
                 ],
               ),
+              if (_scores!.techniqueHints.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text('Tips', style: Theme.of(context).textTheme.titleSmall),
+                const SizedBox(height: 4),
+                ..._scores!.techniqueHints.map(
+                  (hint) => Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text('• ${hint.message}'),
+                  ),
+                ),
+              ],
               const SizedBox(height: 16),
             ],
             Row(

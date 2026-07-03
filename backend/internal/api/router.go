@@ -34,6 +34,10 @@ func NewRouter(store *service.Store, cfg config.Config) http.Handler {
 		})
 		r.Route("/content", func(r chi.Router) {
 			r.Get("/", handler.ListContent)
+			r.Group(func(r chi.Router) {
+				r.Use(AuthMiddleware(authService))
+				r.Get("/recommendations", handler.ListRecommendations)
+			})
 			r.Get("/{id}", handler.GetContent)
 		})
 		r.Route("/practice", func(r chi.Router) {

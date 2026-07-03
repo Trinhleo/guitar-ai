@@ -65,6 +65,6 @@ func (h *Handler) UploadPracticeAudio(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, map[string]any{
 		"detectedNotes": playedNotes,
-		"scores":        scores,
+		"scores":        evaluation.ScoresWithHints(scores),
 	})
 }

@@ -58,3 +58,38 @@ jobs:
         run: |
           cd frontend/apps/app_web && flutter pub get && flutter analyze && flutter test
           cd frontend/apps/app_mobile && flutter pub get && flutter analyze && flutter test
+
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: guitar
+          POSTGRES_PASSWORD: guitar
+          POSTGRES_DB: guitar_ai_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U guitar -d guitar_ai_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run Playwright E2E
+        env:
+          GO_ENV: test
+          DATABASE_URL: postgresql://guitar:guitar@localhost:5432/guitar_ai_test
+          JWT_SECRET: ci-e2e-jwt-secret
+        run: chmod +x scripts/e2e.sh && make e2e-test

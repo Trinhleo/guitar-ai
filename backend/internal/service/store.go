@@ -221,7 +221,79 @@ func (s *Store) GetResults(ctx context.Context, sessionID, userID string) (model
 		Metrics:       &metrics,
 		ExpectedNotes: expectedNotes,
 		PlayedNotes:   playedNotes,
+		TechniqueHints: evaluation.TechniqueHints(evaluation.Scores{
+			OverallScore:    derefFloat(session.OverallScore),
+			PitchAccuracy:   metrics.PitchAccuracy,
+			TimingAccuracy:  metrics.TimingAccuracy,
+			TechniqueScore:  metrics.TechniqueScore,
+			ExpressionScore: metrics.ExpressionScore,
+			ConsistencyScore: metrics.ConsistencyScore,
+		}),
 	}, nil
+}
+
+func derefFloat(value *float64) float64 {
+	if value == nil {
+		return 0
+	}
+	return *value
+}
+
+func (s *Store) GetRecommendations(ctx context.Context, userID, instrumentID string, limit int) ([]models.MusicalContent, error) {
+	if limit <= 0 {
+		limit = 3
+	}
+	if instrumentID == "" {
+		instrumentID = "guitar"
+	}
+
+	rows, err := s.Pool.Query(ctx, `
+		SELECT mc.id, mc.type, mc.title, mc.instrument_id, mc.difficulty_level, mc.duration_seconds, mc.bpm, mc.key, mc.expected_notes, mc.created_at
+		FROM musical_content mc
+		WHERE mc.instrument_id = $1
+		  AND mc.id NOT IN (
+		    SELECT content_id FROM practice_sessions
+		    WHERE user_id = $2 AND overall_score IS NOT NULL
+		  )
+		ORDER BY mc.difficulty_level ASC, mc.title ASC
+		LIMIT $3`, instrumentID, userID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	items, err := scanContentRows(rows)
+	if err != nil {
+		return nil, err
+	}
+	if len(items) > 0 {
+		return items, nil
+	}
+
+	fallbackRows, err := s.Pool.Query(ctx, `
+		SELECT mc.id, mc.type, mc.title, mc.instrument_id, mc.difficulty_level, mc.duration_seconds, mc.bpm, mc.key, mc.expected_notes, mc.created_at
+		FROM musical_content mc
+		WHERE mc.instrument_id = $1
+		ORDER BY mc.difficulty_level DESC, mc.title ASC
+		LIMIT $2`, instrumentID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer fallbackRows.Close()
+
+	return scanContentRows(fallbackRows)
+}
+
+func scanContentRows(rows pgx.Rows) ([]models.MusicalContent, error) {
+	var items []models.MusicalContent
+	for rows.Next() {
+		var item models.MusicalContent
+		if err := rows.Scan(&item.ID, &item.Type, &item.Title, &item.InstrumentID, &item.DifficultyLevel, &item.DurationSeconds, &item.BPM, &item.Key, &item.ExpectedNotes, &item.CreatedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	return items, rows.Err()
 }
 
 type SessionContext struct {

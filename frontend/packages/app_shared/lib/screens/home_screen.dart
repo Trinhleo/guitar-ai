@@ -5,6 +5,7 @@ import '../services/auth_store.dart';
 import 'achievements_screen.dart';
 import 'history_screen.dart';
 import 'library_screen.dart';
+import 'practice_screen.dart';
 import 'progress_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -24,12 +25,27 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late Future<List<Instrument>> _instrumentsFuture;
+  late Future<({List<Instrument> instruments, List<MusicalContent> recommendations})> _homeFuture;
 
   @override
   void initState() {
     super.initState();
-    _instrumentsFuture = widget.api.listInstruments();
+    _loadHome();
+  }
+
+  void _loadHome() {
+    _homeFuture = _fetchHome();
+  }
+
+  Future<({List<Instrument> instruments, List<MusicalContent> recommendations})> _fetchHome() async {
+    final results = await Future.wait([
+      widget.api.listInstruments(),
+      widget.api.getRecommendations(),
+    ]);
+    return (
+      instruments: results[0] as List<Instrument>,
+      recommendations: results[1] as List<MusicalContent>,
+    );
   }
 
   @override
@@ -88,8 +104,8 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: FutureBuilder<List<Instrument>>(
-        future: _instrumentsFuture,
+      body: FutureBuilder<({List<Instrument> instruments, List<MusicalContent> recommendations})>(
+        future: _homeFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -106,36 +122,61 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           }
 
-          final instruments = snapshot.data ?? [];
-          if (instruments.isEmpty) {
-            return const Center(child: Text('No instruments found.'));
-          }
-
-          return ListView.separated(
+          final data = snapshot.data!;
+          return ListView(
             padding: const EdgeInsets.all(16),
-            itemCount: instruments.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final instrument = instruments[index];
-              return Card(
-                child: ListTile(
-                  leading: const Icon(Icons.music_note),
-                  title: Text(instrument.name),
-                  subtitle: Text(instrument.family),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => LibraryScreen(
-                          api: widget.api,
-                          instrument: instrument,
-                        ),
-                      ),
-                    );
-                  },
+            children: [
+              if (data.recommendations.isNotEmpty) ...[
+                Text('Recommended for you', style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 12),
+                ...data.recommendations.map(
+                  (content) => Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.recommend),
+                      title: Text(content.title),
+                      subtitle: Text('${content.type} · level ${content.difficultyLevel}'),
+                      trailing: const Icon(Icons.play_arrow),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => PracticeScreen(
+                              api: widget.api,
+                              content: content,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                 ),
-              );
-            },
+                const SizedBox(height: 24),
+              ],
+              Text('Choose an instrument', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 12),
+              ...data.instruments.map(
+                (instrument) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.music_note),
+                      title: Text(instrument.name),
+                      subtitle: Text(instrument.family),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => LibraryScreen(
+                              api: widget.api,
+                              instrument: instrument,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            ],
           );
         },
       ),
