@@ -12,6 +12,7 @@ func NewRouter(store *service.Store) http.Handler {
 	handler := &Handler{Store: store}
 
 	r := chi.NewRouter()
+	r.Use(corsMiddleware())
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 

@@ -1,0 +1,13 @@
+name: network
+description: API client for the Guitar AI Go backend
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  http: ^1.2.2
+
+dev_dependencies:
+  test: ^1.25.8
