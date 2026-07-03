@@ -109,14 +109,14 @@ func (s *Store) StartSession(ctx context.Context, contentID, userID, instrumentI
 	return sessionID, err
 }
 
-func (s *Store) EvaluateSession(ctx context.Context, sessionID string, playedNotes []evaluation.Note) (evaluation.Scores, error) {
+func (s *Store) EvaluateSession(ctx context.Context, sessionID, userID string, playedNotes []evaluation.Note) (evaluation.Scores, error) {
 	var expectedNotesRaw, instrumentConfigRaw []byte
 	err := s.Pool.QueryRow(ctx, `
 		SELECT mc.expected_notes, i.config
 		FROM practice_sessions ps
 		JOIN musical_content mc ON mc.id = ps.content_id
 		JOIN instruments i ON i.id = ps.instrument_id
-		WHERE ps.id = $1`, sessionID).Scan(&expectedNotesRaw, &instrumentConfigRaw)
+		WHERE ps.id = $1 AND ps.user_id = $2`, sessionID, userID).Scan(&expectedNotesRaw, &instrumentConfigRaw)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return evaluation.Scores{}, ErrNotFound
 	}
@@ -159,9 +159,11 @@ func (s *Store) EvaluateSession(ctx context.Context, sessionID string, playedNot
 	return scores, nil
 }
 
-func (s *Store) GetResults(ctx context.Context, sessionID string) (models.ResultsResponse, error) {
+func (s *Store) GetResults(ctx context.Context, sessionID, userID string) (models.ResultsResponse, error) {
 	var session models.PracticeSession
-	err := s.Pool.QueryRow(ctx, `SELECT id, user_id, content_id, instrument_id, overall_score, created_at FROM practice_sessions WHERE id = $1`, sessionID).
+	err := s.Pool.QueryRow(ctx, `
+		SELECT id, user_id, content_id, instrument_id, overall_score, created_at
+		FROM practice_sessions WHERE id = $1 AND user_id = $2`, sessionID, userID).
 		Scan(&session.ID, &session.UserID, &session.ContentID, &session.InstrumentID, &session.OverallScore, &session.CreatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return models.ResultsResponse{}, ErrNotFound

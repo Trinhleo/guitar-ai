@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/Trinhleo/guitar-ai/backend/internal/auth"
 	"github.com/Trinhleo/guitar-ai/backend/internal/models"
 	"github.com/Trinhleo/guitar-ai/backend/internal/service"
 	"github.com/go-chi/chi/v5"
@@ -13,6 +14,7 @@ import (
 
 type Handler struct {
 	Store *service.Store
+	Auth  *auth.Service
 }
 
 func (h *Handler) Health(w http.ResponseWriter, _ *http.Request) {
@@ -74,19 +76,22 @@ func (h *Handler) GetContent(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) StartPractice(w http.ResponseWriter, r *http.Request) {
+	userID, err := auth.UserIDFromRequest(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
 	var req models.StartSessionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil && r.ContentLength > 0 {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	if req.UserID == "" {
-		req.UserID = service.DemoUserID
-	}
 	if req.InstrumentID == "" {
 		req.InstrumentID = "guitar"
 	}
 
-	sessionID, err := h.Store.StartSession(r.Context(), chi.URLParam(r, "contentId"), req.UserID, req.InstrumentID)
+	sessionID, err := h.Store.StartSession(r.Context(), chi.URLParam(r, "contentId"), userID, req.InstrumentID)
 	if errors.Is(err, service.ErrNotFound) {
 		writeError(w, http.StatusNotFound, "Content not found")
 		return
@@ -100,6 +105,12 @@ func (h *Handler) StartPractice(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) EvaluatePractice(w http.ResponseWriter, r *http.Request) {
+	userID, err := auth.UserIDFromRequest(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
 	var req models.EvaluateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body")
@@ -110,7 +121,7 @@ func (h *Handler) EvaluatePractice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	scores, err := h.Store.EvaluateSession(r.Context(), chi.URLParam(r, "sessionId"), req.PlayedNotes)
+	scores, err := h.Store.EvaluateSession(r.Context(), chi.URLParam(r, "sessionId"), userID, req.PlayedNotes)
 	if errors.Is(err, service.ErrNotFound) {
 		writeError(w, http.StatusNotFound, "Session not found")
 		return
@@ -124,7 +135,13 @@ func (h *Handler) EvaluatePractice(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetPracticeResults(w http.ResponseWriter, r *http.Request) {
-	results, err := h.Store.GetResults(r.Context(), chi.URLParam(r, "sessionId"))
+	userID, err := auth.UserIDFromRequest(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	results, err := h.Store.GetResults(r.Context(), chi.URLParam(r, "sessionId"), userID)
 	if errors.Is(err, service.ErrNotFound) {
 		writeError(w, http.StatusNotFound, "Session not found")
 		return

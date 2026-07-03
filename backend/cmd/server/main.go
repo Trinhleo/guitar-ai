@@ -33,14 +33,14 @@ func main() {
 		if err := migrate.Run(ctx, pool); err != nil {
 			log.Fatalf("migration failed: %v", err)
 		}
-		fmt.Println("Migration 001 applied")
+		fmt.Println("Migrations applied")
 		return
 	}
 
 	store := &service.Store{Pool: pool}
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,
-		Handler:           api.NewRouter(store),
+		Handler:           api.NewRouter(store, cfg),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
