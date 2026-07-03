@@ -23,6 +23,7 @@ Build an intelligent music tutoring system that:
 - [Database Schema](#-database-schema)
 - [API Endpoints](#-api-endpoints)
 - [Implementation Roadmap](#-implementation-roadmap)
+- [Sprint Backlog (Kanban)](#-sprint-backlog-kanban)
 - [Contributing](#-contributing)
 
 ---
@@ -496,6 +497,18 @@ docker-compose up
 ```
 
 See [DEVELOPMENT.md](docs/DEVELOPMENT.md) for more.
+
+---
+
+## 📌 Sprint Backlog (Kanban)
+
+Track work via **GitHub Issues** + **Projects** board:
+
+- **Backlog doc:** [docs/SPRINT_BACKLOG.md](docs/SPRINT_BACKLOG.md)
+- **Issue templates:** `.github/ISSUE_TEMPLATE/`
+- **Bulk create issues:** `./scripts/create-github-issues.sh`
+
+**Kanban columns:** Backlog → Ready → In Progress → In Review → Done
 
 ---
 

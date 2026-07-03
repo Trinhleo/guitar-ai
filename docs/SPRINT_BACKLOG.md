@@ -1,0 +1,222 @@
+# Sprint Backlog & Kanban Guide
+
+Track work using **GitHub Issues** + **GitHub Projects** (Kanban board).
+
+---
+
+## Setup (one-time)
+
+### 1. Create labels
+
+Repo → **Issues** → **Labels** → New label, or run:
+
+```bash
+./scripts/create-github-issues.sh --labels-only
+```
+
+| Label | Color | Purpose |
+|-------|-------|---------|
+| `priority: P0` | `#b60205` | Must ship this sprint |
+| `priority: P1` | `#d93f0b` | Should ship this sprint |
+| `priority: P2` | `#fbca04` | Backlog / nice-to-have |
+| `area: backend` | `#1d76db` | Go API, DB, evaluation |
+| `area: frontend` | `#5319e7` | Flutter web/mobile |
+| `area: infra` | `#006b75` | Docker, CI/CD |
+| `sprint-1` | `#0e8a16` | Sprint 1 ticket |
+| `sprint-2` | `#c5def5` | Sprint 2 ticket |
+| `status: done` | `#ededed` | Completed (move in Project) |
+
+### 2. Create milestones
+
+| Milestone | Due | Goal |
+|-----------|-----|------|
+| **Sprint 1 — Core UX** | +2 weeks | Auth, history, stable frontend |
+| **Sprint 2 — Real-time & Audio** | +4 weeks | WebSocket, mic input, pitch detection |
+
+### 3. Create Kanban Project
+
+1. Go to https://github.com/Trinhleo/guitar-ai/projects
+2. **New project** → **Board** template
+3. Name: `Guitar AI Kanban`
+4. Columns:
+
+```
+Backlog → Ready → In Progress → In Review → Done
+```
+
+5. Add workflow: auto-move to **Done** when issue is closed
+
+### 4. Bulk-create issues
+
+```bash
+./scripts/create-github-issues.sh
+```
+
+Requires `gh auth login` with `repo` scope.
+
+---
+
+## Current status (as of 2026-07-03)
+
+| Item | Status | PR |
+|------|--------|-----|
+| Go MVP backend | ✅ Done | #2 (merged) |
+| Flutter web frontend | 🔄 In Review | #3 |
+| JWT auth | 📋 Sprint 1 | — |
+| Practice history | 📋 Sprint 1 | — |
+| WebSocket feedback | 📋 Sprint 2 | — |
+| Microphone + pitch | 📋 Sprint 2 | — |
+
+---
+
+## Sprint 1 — Core UX
+
+### #1 — Merge & verify Flutter web frontend
+- **Priority:** P0 · **Area:** frontend · **Labels:** `sprint-1`, `area: frontend`
+- **Goal:** Land PR #3, confirm end-to-end practice flow works locally
+- **Acceptance:**
+  - [ ] PR #3 merged
+  - [ ] `make run` + `make frontend-run` works
+  - [ ] User can pick guitar → lesson → submit → see scores
+
+### #2 — JWT authentication (backend)
+- **Priority:** P0 · **Area:** backend · **Epic:** auth
+- **Goal:** Replace demo user with real signup/login
+- **Acceptance:**
+  - [ ] `users` table + password hashing (bcrypt)
+  - [ ] `POST /api/auth/register`, `POST /api/auth/login`
+  - [ ] JWT middleware on practice endpoints
+  - [ ] Go tests for auth flow
+
+### #3 — JWT authentication (Flutter)
+- **Priority:** P0 · **Area:** frontend · **Epic:** auth · **Blocked by:** #2
+- **Goal:** Login/register screens, token storage, authenticated API calls
+- **Acceptance:**
+  - [ ] Login + register screens
+  - [ ] Token persisted (shared_preferences)
+  - [ ] ApiClient sends `Authorization: Bearer` header
+  - [ ] Flutter widget tests for auth state
+
+### #4 — Practice history API
+- **Priority:** P1 · **Area:** backend
+- **Goal:** `GET /api/practice/history` for current user
+- **Acceptance:**
+  - [ ] Returns sessions with scores, ordered by date
+  - [ ] Pagination (limit/offset)
+  - [ ] Integration tests
+
+### #5 — Practice history UI
+- **Priority:** P1 · **Area:** frontend · **Blocked by:** #4
+- **Goal:** History screen showing past sessions
+- **Acceptance:**
+  - [ ] List of past practice sessions
+  - [ ] Tap session → view scores
+  - [ ] Empty state when no history
+
+### #6 — Docker Compose: Go API + Postgres
+- **Priority:** P1 · **Area:** infra
+- **Goal:** Single `docker compose up` runs full backend stack
+- **Acceptance:**
+  - [ ] Dockerfile for Go backend
+  - [ ] `docker-compose.yml` includes api + postgres
+  - [ ] README updated
+
+### #7 — CI pipeline (Go + Flutter tests)
+- **Priority:** P1 · **Area:** infra
+- **Goal:** GitHub Actions on every PR
+- **Acceptance:**
+  - [ ] `make test` on push/PR
+  - [ ] `make frontend-test` on push/PR
+  - [ ] Status checks required before merge
+
+---
+
+## Sprint 2 — Real-time & Audio
+
+### #8 — WebSocket real-time feedback
+- **Priority:** P0 · **Area:** backend · **Epic:** realtime
+- **Goal:** Live pitch/timing hints during practice
+- **Acceptance:**
+  - [ ] `WS /ws/practice/:sessionId`
+  - [ ] Server accepts note events, returns feedback JSON
+  - [ ] Go tests with httptest websocket client
+
+### #9 — WebSocket client (Flutter)
+- **Priority:** P0 · **Area:** frontend · **Blocked by:** #8
+- **Goal:** Connect practice screen to live feedback stream
+- **Acceptance:**
+  - [ ] WebSocket client in `network` package
+  - [ ] Practice screen shows live score updates
+  - [ ] Reconnect on disconnect
+
+### #10 — Microphone input (Flutter)
+- **Priority:** P1 · **Area:** frontend · **Epic:** audio
+- **Goal:** Record audio during practice (web + mobile)
+- **Acceptance:**
+  - [ ] Request mic permission
+  - [ ] Record button with waveform or timer
+  - [ ] Platform-specific implementation (web vs mobile)
+
+### #11 — Audio upload + pitch detection
+- **Priority:** P1 · **Area:** backend · **Epic:** audio
+- **Goal:** Accept WAV upload, detect notes, feed evaluation engine
+- **Acceptance:**
+  - [ ] `POST /api/practice/:sessionId/upload`
+  - [ ] Pitch detection (Python sidecar or Go lib)
+  - [ ] Detected notes → existing `EvaluatePerformance`
+  - [ ] Integration test with sample WAV
+
+### #12 — Flutter mobile app (`app_mobile`)
+- **Priority:** P2 · **Area:** frontend
+- **Goal:** iOS + Android app sharing packages with web
+- **Acceptance:**
+  - [ ] `frontend/apps/app_mobile` created
+  - [ ] Shares `network` + `shared_ui` packages
+  - [ ] Practice flow works on emulator
+
+### #13 — Seed more content (solos + chords)
+- **Priority:** P2 · **Area:** backend
+- **Goal:** Expand library beyond one guitar lesson
+- **Acceptance:**
+  - [ ] Migration with 3+ solos, 3+ chord exercises
+  - [ ] Content visible in Flutter library screen
+
+### #14 — Progress dashboard / stats API
+- **Priority:** P2 · **Area:** backend + frontend
+- **Goal:** `GET /api/stats/progress` + dashboard UI
+- **Acceptance:**
+  - [ ] Overall progress metrics per user
+  - [ ] Dashboard screen in Flutter
+  - [ ] Charts for pitch/timing over time
+
+---
+
+## Kanban workflow
+
+```
+┌──────────┐   ┌───────┐   ┌─────────────┐   ┌───────────┐   ┌──────┐
+│ Backlog  │ → │ Ready │ → │ In Progress │ → │ In Review │ → │ Done │
+└──────────┘   └───────┘   └─────────────┘   └───────────┘   └──────┘
+     │              │              │                │
+  Prioritized    Has AC        Branch open       PR open      Merged +
+  not started    no blockers    agent/dev        CI green     closed
+```
+
+**Rules:**
+1. WIP limit: max **2** items In Progress
+2. Every ticket needs **acceptance criteria** before moving to Ready
+3. Link PRs to issues (`Closes #N` in PR body)
+4. Close issue only when acceptance criteria are met
+
+---
+
+## Linking PRs to issues
+
+In PR description:
+
+```markdown
+Closes #2
+Related: #3
+```
+
+GitHub auto-closes issues when PR merges to default branch.
