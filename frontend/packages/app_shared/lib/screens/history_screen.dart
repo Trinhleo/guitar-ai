@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:network/network.dart';
 import 'package:shared_ui/shared_ui.dart';
 
+import 'session_detail_screen.dart';
+
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key, required this.api});
 
@@ -21,33 +23,20 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Future<void> _openSession(String sessionId) async {
-    final results = await widget.api.getResults(sessionId);
-    if (!mounted) return;
-
-    showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Session results'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (results.overallScore != null)
-              Text('Overall: ${results.overallScore!.toStringAsFixed(1)}'),
-            if (results.pitchAccuracy != null)
-              Text('Pitch: ${results.pitchAccuracy!.toStringAsFixed(1)}'),
-            if (results.timingAccuracy != null)
-              Text('Timing: ${results.timingAccuracy!.toStringAsFixed(1)}'),
-          ],
+    try {
+      final results = await widget.api.getResults(sessionId);
+      if (!mounted) return;
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => SessionDetailScreen(results: results),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
+      );
+    } catch (err) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not load session: $err')),
+      );
+    }
   }
 
   @override

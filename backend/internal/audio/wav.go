@@ -6,6 +6,12 @@ import (
 	"math"
 )
 
+const (
+	silenceRMSThreshold   = 0.015
+	minCorrelationRatio   = 0.35
+	noteGapMergeMs        = 120
+)
+
 type WAVData struct {
 	SampleRate int
 	Samples    []float64
@@ -82,7 +88,13 @@ func DetectNotes(data WAVData, windowMs, hopMs int) []DetectedNote {
 	var notes []DetectedNote
 	startMs := 0
 	for i := 0; i+windowSize <= len(data.Samples); i += hopSize {
-		freq := estimateFrequency(data.Samples[i : i+windowSize], data.SampleRate)
+		window := data.Samples[i : i+windowSize]
+		if rms(window) < silenceRMSThreshold {
+			startMs += hopMs
+			continue
+		}
+
+		freq := estimateFrequency(window, data.SampleRate)
 		if freq > 0 {
 			if noteName, ok := frequencyToNote(freq); ok {
 				notes = append(notes, DetectedNote{
@@ -95,13 +107,24 @@ func DetectNotes(data WAVData, windowMs, hopMs int) []DetectedNote {
 		startMs += hopMs
 	}
 
-	return dedupeNotes(notes)
+	return dedupeNotes(notes, noteGapMergeMs)
 }
 
 type DetectedNote struct {
 	Note       string
 	StartMs    int
 	DurationMs int
+}
+
+func rms(samples []float64) float64 {
+	if len(samples) == 0 {
+		return 0
+	}
+	var sum float64
+	for _, sample := range samples {
+		sum += sample * sample
+	}
+	return math.Sqrt(sum / float64(len(samples)))
 }
 
 func estimateFrequency(samples []float64, sampleRate int) float64 {
@@ -114,6 +137,14 @@ func estimateFrequency(samples []float64, sampleRate int) float64 {
 	}
 	if minLag < 1 {
 		minLag = 1
+	}
+
+	energy := 0.0
+	for _, sample := range samples {
+		energy += sample * sample
+	}
+	if energy == 0 {
+		return 0
 	}
 
 	bestLag := 0
@@ -129,7 +160,7 @@ func estimateFrequency(samples []float64, sampleRate int) float64 {
 		}
 	}
 
-	if bestLag == 0 {
+	if bestLag == 0 || bestCorr < energy*minCorrelationRatio {
 		return 0
 	}
 	return float64(sampleRate) / float64(bestLag)
@@ -149,15 +180,16 @@ func frequencyToNote(freq float64) (string, bool) {
 	return fmt.Sprintf("%s%d", name, octave), true
 }
 
-func dedupeNotes(notes []DetectedNote) []DetectedNote {
+func dedupeNotes(notes []DetectedNote, gapMergeMs int) []DetectedNote {
 	if len(notes) == 0 {
 		return notes
 	}
 	result := []DetectedNote{notes[0]}
 	for i := 1; i < len(notes); i++ {
 		last := result[len(result)-1]
-		if notes[i].Note == last.Note {
-			last.DurationMs += notes[i].DurationMs
+		gap := notes[i].StartMs - (last.StartMs + last.DurationMs)
+		if notes[i].Note == last.Note && gap <= gapMergeMs {
+			last.DurationMs = notes[i].StartMs + notes[i].DurationMs - last.StartMs
 			result[len(result)-1] = last
 			continue
 		}

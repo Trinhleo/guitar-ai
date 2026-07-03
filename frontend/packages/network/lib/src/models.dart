@@ -122,22 +122,47 @@ class EvaluationScores {
 
 class PracticeResults {
   PracticeResults({
+    required this.contentTitle,
+    required this.contentType,
     required this.overallScore,
     required this.pitchAccuracy,
     required this.timingAccuracy,
+    required this.techniqueScore,
+    required this.expectedNotes,
+    required this.playedNotes,
+    required this.createdAt,
   });
 
+  final String contentTitle;
+  final String contentType;
   final double? overallScore;
   final double? pitchAccuracy;
   final double? timingAccuracy;
+  final double? techniqueScore;
+  final List<PracticeNote> expectedNotes;
+  final List<PracticeNote> playedNotes;
+  final String? createdAt;
 
   factory PracticeResults.fromJson(Map<String, dynamic> json) {
     final metrics = json['metrics'] as Map<String, dynamic>?;
     final session = json['session'] as Map<String, dynamic>?;
+    final expected = (json['expectedNotes'] as List<dynamic>? ?? [])
+        .map((item) => PracticeNote.fromJson(item as Map<String, dynamic>))
+        .toList();
+    final played = (json['playedNotes'] as List<dynamic>? ?? [])
+        .map((item) => PracticeNote.fromJson(item as Map<String, dynamic>))
+        .toList();
+
     return PracticeResults(
+      contentTitle: json['contentTitle'] as String? ?? '',
+      contentType: json['contentType'] as String? ?? '',
       overallScore: (session?['overall_score'] as num?)?.toDouble(),
       pitchAccuracy: (metrics?['pitch_accuracy'] as num?)?.toDouble(),
       timingAccuracy: (metrics?['timing_accuracy'] as num?)?.toDouble(),
+      techniqueScore: (metrics?['technique_score'] as num?)?.toDouble(),
+      expectedNotes: expected,
+      playedNotes: played,
+      createdAt: session?['created_at'] as String?,
     );
   }
 }

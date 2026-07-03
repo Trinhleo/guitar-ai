@@ -8,4 +8,5 @@ export 'screens/login_screen.dart';
 export 'screens/practice_screen.dart';
 export 'screens/progress_screen.dart';
 export 'screens/register_screen.dart';
+export 'screens/session_detail_screen.dart';
 export 'services/auth_store.dart';
