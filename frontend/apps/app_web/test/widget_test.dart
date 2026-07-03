@@ -55,19 +55,20 @@ void main() {
     });
   });
 
-  group('UserProgress', () {
-    test('parses progress payload', () {
-      final progress = UserProgress.fromJson({
-        'totalSessions': 3,
-        'evaluatedCount': 2,
-        'averageScore': 88.5,
-        'bestScore': 95.0,
-        'recentScores': [95.0, 82.0],
-        'sessionsByType': {'lesson': 2, 'solo': 1},
+  group('LiveFeedback', () {
+    test('parses websocket feedback payload', () {
+      final feedback = LiveFeedback.fromJson({
+        'partialScore': 85.5,
+        'pitchAccuracy': 90.0,
+        'timingAccuracy': 80.0,
+        'matchedNotes': 2,
+        'totalNotes': 3,
+        'message': 'Good pitch — watch your timing.',
       });
 
-      expect(progress.totalSessions, 3);
-      expect(progress.sessionsByType['lesson'], 2);
+      expect(feedback.partialScore, 85.5);
+      expect(feedback.matchedNotes, 2);
+      expect(feedback.message, contains('pitch'));
     });
   });
 }

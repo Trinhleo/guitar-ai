@@ -68,9 +68,9 @@ Requires `gh auth login` with `repo` scope.
 | Seed content (solos + chords) | ✅ Done |
 | Docker Compose (API + Postgres) | ✅ Done |
 | CI pipeline (Go + Flutter) | ✅ Done |
-| WebSocket feedback | 📋 Sprint 2 |
-| Microphone + pitch detection | 📋 Sprint 2 |
-| Flutter mobile app | 📋 Sprint 2 |
+| WebSocket feedback | ✅ Done |
+| Microphone + pitch detection | ✅ Done |
+| Flutter mobile app | ✅ Done |
 
 ---
 

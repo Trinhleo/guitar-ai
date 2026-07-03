@@ -55,8 +55,6 @@ jobs:
           channel: stable
 
       - name: Run Flutter tests
-        working-directory: frontend/apps/app_web
         run: |
-          flutter pub get
-          flutter analyze
-          flutter test
+          cd frontend/apps/app_web && flutter pub get && flutter analyze && flutter test
+          cd frontend/apps/app_mobile && flutter pub get && flutter analyze && flutter test
