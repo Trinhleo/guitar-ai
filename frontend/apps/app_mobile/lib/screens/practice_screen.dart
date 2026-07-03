@@ -32,12 +32,25 @@ class _PracticeScreenState extends State<PracticeScreen> {
   EvaluationScores? _scores;
   LiveFeedback? _liveFeedback;
   StreamSubscription<LiveFeedback>? _feedbackSub;
+  double _playbackSpeed = 1.0;
+
+  static const _speedOptions = [0.5, 0.75, 1.0];
 
   @override
   void initState() {
     super.initState();
     _initSession();
   }
+
+  PracticeNote _scaleForEvaluation(PracticeNote note) {
+    return PracticeNote(
+      note: note.note,
+      startMs: (note.startMs * _playbackSpeed).round(),
+      durationMs: (note.durationMs * _playbackSpeed).round(),
+    );
+  }
+
+  int _displayMs(int ms) => (ms / _playbackSpeed).round();
 
   Future<void> _initSession() async {
     setState(() => _loading = true);
@@ -85,12 +98,15 @@ class _PracticeScreenState extends State<PracticeScreen> {
     });
 
     try {
-      for (final note in widget.content.expectedNotes) {
+      final playedNotes = widget.content.expectedNotes
+          .map(_scaleForEvaluation)
+          .toList();
+      for (final note in playedNotes) {
         _socket?.sendNote(note);
       }
       final scores = await widget.api.evaluatePractice(
         sessionId: _sessionId!,
-        playedNotes: widget.content.expectedNotes,
+        playedNotes: playedNotes,
       );
       setState(() => _scores = scores);
     } catch (err) {
@@ -152,6 +168,10 @@ class _PracticeScreenState extends State<PracticeScreen> {
     }
   }
 
+  void _sendNote(PracticeNote note) {
+    _socket?.sendNote(_scaleForEvaluation(note));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -161,16 +181,39 @@ class _PracticeScreenState extends State<PracticeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Text('Practice speed', style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 8),
+            SegmentedButton<double>(
+              segments: _speedOptions
+                  .map(
+                    (speed) => ButtonSegment(
+                      value: speed,
+                      label: Text('${(speed * 100).round()}%'),
+                    ),
+                  )
+                  .toList(),
+              selected: {_playbackSpeed},
+              onSelectionChanged: _loading || _recording
+                  ? null
+                  : (selected) {
+                      setState(() => _playbackSpeed = selected.first);
+                    },
+            ),
+            const SizedBox(height: 16),
             if (_liveFeedback != null) ...[
               Text('Live feedback', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
               Text(_liveFeedback!.message),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
+              PitchMeter(
+                pitchAccuracy: _liveFeedback!.pitchAccuracy,
+                timingAccuracy: _liveFeedback!.timingAccuracy,
+              ),
+              const SizedBox(height: 12),
               Wrap(
                 spacing: 8,
                 children: [
                   ScoreChip(label: 'Live', value: _liveFeedback!.partialScore),
-                  ScoreChip(label: 'Pitch', value: _liveFeedback!.pitchAccuracy),
                   ScoreChip(
                     label: 'Matched',
                     value: _liveFeedback!.totalNotes == 0
@@ -191,12 +234,12 @@ class _PracticeScreenState extends State<PracticeScreen> {
                   return ListTile(
                     leading: Text('${index + 1}'),
                     title: Text(note.note),
-                    subtitle: Text('Start ${note.startMs}ms · Duration ${note.durationMs}ms'),
+                    subtitle: Text(
+                      'Start ${_displayMs(note.startMs)}ms · Duration ${_displayMs(note.durationMs)}ms',
+                    ),
                     trailing: IconButton(
                       icon: const Icon(Icons.play_arrow),
-                      onPressed: _sessionId == null
-                          ? null
-                          : () => _socket?.sendNote(note),
+                      onPressed: _sessionId == null ? null : () => _sendNote(note),
                     ),
                   );
                 },
@@ -209,13 +252,16 @@ class _PracticeScreenState extends State<PracticeScreen> {
             if (_scores != null) ...[
               Text('Results', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
+              PitchMeter(
+                pitchAccuracy: _scores!.pitchAccuracy,
+                timingAccuracy: _scores!.timingAccuracy,
+              ),
+              const SizedBox(height: 12),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
                   ScoreChip(label: 'Overall', value: _scores!.overallScore),
-                  ScoreChip(label: 'Pitch', value: _scores!.pitchAccuracy),
-                  ScoreChip(label: 'Timing', value: _scores!.timingAccuracy),
                   ScoreChip(label: 'Technique', value: _scores!.techniqueScore),
                 ],
               ),

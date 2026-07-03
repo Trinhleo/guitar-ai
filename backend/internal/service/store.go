@@ -341,3 +341,68 @@ func (s *Store) GetUserProgress(ctx context.Context, userID string) (models.User
 		SessionsByType: sessionsByType,
 	}, typeRows.Err()
 }
+
+func (s *Store) GetUserAchievements(ctx context.Context, userID string) ([]models.Achievement, error) {
+	progress, err := s.GetUserProgress(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	var maxPitch *float64
+	err = s.Pool.QueryRow(ctx, `
+		SELECT MAX(pm.pitch_accuracy)
+		FROM performance_metrics pm
+		JOIN practice_sessions ps ON ps.id = pm.session_id
+		WHERE ps.user_id = $1`, userID).Scan(&maxPitch)
+	if err != nil {
+		return nil, err
+	}
+
+	bestScore := 0.0
+	if progress.BestScore != nil {
+		bestScore = *progress.BestScore
+	}
+	maxPitchVal := 0.0
+	if maxPitch != nil {
+		maxPitchVal = *maxPitch
+	}
+
+	return []models.Achievement{
+		{
+			ID:          "first_session",
+			Title:       "First Steps",
+			Description: "Complete your first practice session",
+			Unlocked:    progress.TotalSessions >= 1,
+		},
+		{
+			ID:          "regular_practice",
+			Title:       "Regular Practice",
+			Description: "Complete 5 practice sessions",
+			Unlocked:    progress.TotalSessions >= 5,
+		},
+		{
+			ID:          "perfect_performance",
+			Title:       "Perfect Performance",
+			Description: "Score 95 or higher on a session",
+			Unlocked:    bestScore >= 95,
+		},
+		{
+			ID:          "solo_player",
+			Title:       "Solo Player",
+			Description: "Practice a solo exercise",
+			Unlocked:    progress.SessionsByType["solo"] >= 1,
+		},
+		{
+			ID:          "chord_master",
+			Title:       "Chord Master",
+			Description: "Practice a chord progression",
+			Unlocked:    progress.SessionsByType["chord"] >= 1,
+		},
+		{
+			ID:          "pitch_pro",
+			Title:       "Pitch Pro",
+			Description: "Achieve 90+ pitch accuracy",
+			Unlocked:    maxPitchVal >= 90,
+		},
+	}, nil
+}

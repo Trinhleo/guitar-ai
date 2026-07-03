@@ -112,3 +112,10 @@ type UserProgress struct {
 	RecentScores    []float64          `json:"recentScores"`
 	SessionsByType  map[string]int     `json:"sessionsByType"`
 }
+
+type Achievement struct {
+	ID          string `json:"id"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Unlocked    bool   `json:"unlocked"`
+}

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:network/network.dart';
 
 import '../services/auth_store.dart';
+import 'achievements_screen.dart';
 import 'history_screen.dart';
 import 'library_screen.dart';
 import 'progress_screen.dart';
@@ -37,6 +38,17 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: const Text('Guitar AI Tutor'),
         actions: [
+          IconButton(
+            tooltip: 'Achievements',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => AchievementsScreen(api: widget.api),
+                ),
+              );
+            },
+            icon: const Icon(Icons.emoji_events),
+          ),
           IconButton(
             tooltip: 'Progress',
             onPressed: () {
