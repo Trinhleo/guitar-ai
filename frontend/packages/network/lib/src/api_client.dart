@@ -138,6 +138,34 @@ class ApiClient {
     );
   }
 
+  Future<PracticeHistoryResponse> listPracticeHistory({
+    int limit = 20,
+    int offset = 0,
+  }) async {
+    final uri = Uri.parse('$baseUrl/api/practice/history').replace(
+      queryParameters: {
+        'limit': '$limit',
+        'offset': '$offset',
+      },
+    );
+    final response = await http.get(uri, headers: _jsonHeaders);
+    _ensureSuccess(response);
+    return PracticeHistoryResponse.fromJson(
+      jsonDecode(response.body) as Map<String, dynamic>,
+    );
+  }
+
+  Future<UserProgress> getProgress() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/stats/progress'),
+      headers: _jsonHeaders,
+    );
+    _ensureSuccess(response);
+    return UserProgress.fromJson(
+      jsonDecode(response.body) as Map<String, dynamic>,
+    );
+  }
+
   void _ensureSuccess(http.Response response, {int expectedStatus = 200}) {
     if (response.statusCode != expectedStatus) {
       throw ApiException(

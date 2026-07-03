@@ -40,6 +40,9 @@ func Run(ctx context.Context, pool *pgxpool.Pool) error {
 }
 
 func migrationsDir() string {
+	if dir := os.Getenv("MIGRATIONS_DIR"); dir != "" {
+		return dir
+	}
 	_, filename, _, _ := runtime.Caller(0)
 	return filepath.Join(filepath.Dir(filename), "../../migrations")
 }

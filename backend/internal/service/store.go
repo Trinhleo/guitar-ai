@@ -186,3 +186,121 @@ func (s *Store) GetResults(ctx context.Context, sessionID, userID string) (model
 
 	return models.ResultsResponse{Session: session, Metrics: &metrics}, nil
 }
+
+func (s *Store) ListPracticeHistory(ctx context.Context, userID string, limit, offset int) (models.PracticeHistoryResponse, error) {
+	if limit <= 0 {
+		limit = 20
+	}
+	if limit > 100 {
+		limit = 100
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	var total int
+	if err := s.Pool.QueryRow(ctx, `
+		SELECT COUNT(*) FROM practice_sessions WHERE user_id = $1`, userID).
+		Scan(&total); err != nil {
+		return models.PracticeHistoryResponse{}, err
+	}
+
+	rows, err := s.Pool.Query(ctx, `
+		SELECT ps.id, ps.content_id, mc.title, mc.type, ps.instrument_id, ps.overall_score, ps.created_at
+		FROM practice_sessions ps
+		JOIN musical_content mc ON mc.id = ps.content_id
+		WHERE ps.user_id = $1
+		ORDER BY ps.created_at DESC
+		LIMIT $2 OFFSET $3`, userID, limit, offset)
+	if err != nil {
+		return models.PracticeHistoryResponse{}, err
+	}
+	defer rows.Close()
+
+	items := []models.PracticeHistoryItem{}
+	for rows.Next() {
+		var item models.PracticeHistoryItem
+		if err := rows.Scan(
+			&item.SessionID, &item.ContentID, &item.ContentTitle,
+			&item.ContentType, &item.InstrumentID, &item.OverallScore, &item.CreatedAt,
+		); err != nil {
+			return models.PracticeHistoryResponse{}, err
+		}
+		items = append(items, item)
+	}
+
+	return models.PracticeHistoryResponse{
+		Items:  items,
+		Limit:  limit,
+		Offset: offset,
+		Total:  total,
+	}, rows.Err()
+}
+
+func (s *Store) GetUserProgress(ctx context.Context, userID string) (models.UserProgress, error) {
+	var totalSessions, evaluatedCount int
+	var avgScore, bestScore *float64
+	err := s.Pool.QueryRow(ctx, `
+		SELECT
+			COUNT(*),
+			COUNT(overall_score),
+			AVG(overall_score),
+			MAX(overall_score)
+		FROM practice_sessions
+		WHERE user_id = $1`, userID).
+		Scan(&totalSessions, &evaluatedCount, &avgScore, &bestScore)
+	if err != nil {
+		return models.UserProgress{}, err
+	}
+
+	rows, err := s.Pool.Query(ctx, `
+		SELECT overall_score FROM practice_sessions
+		WHERE user_id = $1 AND overall_score IS NOT NULL
+		ORDER BY created_at DESC LIMIT 10`, userID)
+	if err != nil {
+		return models.UserProgress{}, err
+	}
+	defer rows.Close()
+
+	recentScores := []float64{}
+	for rows.Next() {
+		var score float64
+		if err := rows.Scan(&score); err != nil {
+			return models.UserProgress{}, err
+		}
+		recentScores = append(recentScores, score)
+	}
+	if err := rows.Err(); err != nil {
+		return models.UserProgress{}, err
+	}
+
+	typeRows, err := s.Pool.Query(ctx, `
+		SELECT mc.type, COUNT(*)
+		FROM practice_sessions ps
+		JOIN musical_content mc ON mc.id = ps.content_id
+		WHERE ps.user_id = $1
+		GROUP BY mc.type`, userID)
+	if err != nil {
+		return models.UserProgress{}, err
+	}
+	defer typeRows.Close()
+
+	sessionsByType := map[string]int{}
+	for typeRows.Next() {
+		var contentType string
+		var count int
+		if err := typeRows.Scan(&contentType, &count); err != nil {
+			return models.UserProgress{}, err
+		}
+		sessionsByType[contentType] = count
+	}
+
+	return models.UserProgress{
+		TotalSessions:  totalSessions,
+		EvaluatedCount: evaluatedCount,
+		AverageScore:   avgScore,
+		BestScore:      bestScore,
+		RecentScores:   recentScores,
+		SessionsByType: sessionsByType,
+	}, typeRows.Err()
+}

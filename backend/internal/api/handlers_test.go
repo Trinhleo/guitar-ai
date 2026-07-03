@@ -355,3 +355,63 @@ func TestPracticeSessionOwnership(t *testing.T) {
 		t.Fatalf("status = %d, want 404 for other user's session", resultsRec.Code)
 	}
 }
+
+func TestPracticeHistoryAndProgress(t *testing.T) {
+	router := testRouter(t)
+	authResp := registerUser(t, router, uniqueEmail("history"), "password123")
+
+	startReq := httptest.NewRequest(http.MethodPost, "/api/practice/start/"+contentID, bytes.NewReader([]byte(`{}`)))
+	startReq.Header.Set("Content-Type", "application/json")
+	startReq.Header.Set("Authorization", authHeader(authResp.Token))
+	startRec := httptest.NewRecorder()
+	router.ServeHTTP(startRec, startReq)
+
+	var startResp map[string]string
+	_ = json.Unmarshal(startRec.Body.Bytes(), &startResp)
+
+	evalBody, _ := json.Marshal(map[string]any{
+		"playedNotes": []evaluation.Note{
+			{Note: "E4", StartMs: 0, DurationMs: 500},
+		},
+	})
+	evalReq := httptest.NewRequest(http.MethodPost, "/api/practice/"+startResp["sessionId"]+"/evaluate", bytes.NewReader(evalBody))
+	evalReq.Header.Set("Content-Type", "application/json")
+	evalReq.Header.Set("Authorization", authHeader(authResp.Token))
+	evalRec := httptest.NewRecorder()
+	router.ServeHTTP(evalRec, evalReq)
+
+	historyReq := httptest.NewRequest(http.MethodGet, "/api/practice/history", nil)
+	historyReq.Header.Set("Authorization", authHeader(authResp.Token))
+	historyRec := httptest.NewRecorder()
+	router.ServeHTTP(historyRec, historyReq)
+
+	if historyRec.Code != http.StatusOK {
+		t.Fatalf("history status = %d, body = %s", historyRec.Code, historyRec.Body.String())
+	}
+
+	var history map[string]any
+	if err := json.Unmarshal(historyRec.Body.Bytes(), &history); err != nil {
+		t.Fatalf("decode history: %v", err)
+	}
+	items := history["items"].([]any)
+	if len(items) == 0 {
+		t.Fatal("expected at least one history item")
+	}
+
+	progressReq := httptest.NewRequest(http.MethodGet, "/api/stats/progress", nil)
+	progressReq.Header.Set("Authorization", authHeader(authResp.Token))
+	progressRec := httptest.NewRecorder()
+	router.ServeHTTP(progressRec, progressReq)
+
+	if progressRec.Code != http.StatusOK {
+		t.Fatalf("progress status = %d, body = %s", progressRec.Code, progressRec.Body.String())
+	}
+
+	var progress map[string]any
+	if err := json.Unmarshal(progressRec.Body.Bytes(), &progress); err != nil {
+		t.Fatalf("decode progress: %v", err)
+	}
+	if int(progress["totalSessions"].(float64)) < 1 {
+		t.Fatalf("expected totalSessions >= 1, got %+v", progress)
+	}
+}

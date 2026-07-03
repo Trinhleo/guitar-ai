@@ -144,24 +144,15 @@ guitar-ai/
 **1. Backend**
 
 ```bash
-git clone https://github.com/Trinhleo/guitar-ai.git
-cd guitar-ai
 cp .env.example .env
-
-# Start PostgreSQL (Docker) or use a local instance
-docker compose up -d
-
-make migrate   # apply schema + seed data
-make test      # run Go tests
-make run       # API on http://localhost:5000
+make docker-up    # Postgres + Go API (or: make migrate && make run)
+make test
 ```
 
 **2. Frontend (Flutter Web)**
 
 ```bash
-cd frontend/apps/app_web
-flutter pub get
-flutter run -d web-server --web-port 3000 --web-hostname 0.0.0.0
+make frontend-run
 # Open http://localhost:3000
 ```
 

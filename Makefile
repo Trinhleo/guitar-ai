@@ -1,4 +1,4 @@
-.PHONY: test migrate run smoke tidy frontend-test frontend-run
+.PHONY: test migrate run smoke tidy frontend-test frontend-run docker-up docker-down
 
 test:
 	cd backend && GO_ENV=test go test ./... -count=1
@@ -20,3 +20,9 @@ frontend-test:
 
 frontend-run:
 	cd frontend/apps/app_web && flutter run -d web-server --web-port 3000 --web-hostname 0.0.0.0
+
+docker-up:
+	docker compose up -d --build
+
+docker-down:
+	docker compose down

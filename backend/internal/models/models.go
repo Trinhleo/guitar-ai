@@ -86,3 +86,29 @@ type ResultsResponse struct {
 	Session PracticeSession     `json:"session"`
 	Metrics *PerformanceMetrics `json:"metrics"`
 }
+
+type PracticeHistoryItem struct {
+	SessionID    string    `json:"sessionId"`
+	ContentID    string    `json:"contentId"`
+	ContentTitle string    `json:"contentTitle"`
+	ContentType  string    `json:"contentType"`
+	InstrumentID string    `json:"instrumentId"`
+	OverallScore *float64  `json:"overallScore"`
+	CreatedAt    time.Time `json:"createdAt"`
+}
+
+type PracticeHistoryResponse struct {
+	Items  []PracticeHistoryItem `json:"items"`
+	Limit  int                   `json:"limit"`
+	Offset int                   `json:"offset"`
+	Total  int                   `json:"total"`
+}
+
+type UserProgress struct {
+	TotalSessions   int                `json:"totalSessions"`
+	EvaluatedCount  int                `json:"evaluatedCount"`
+	AverageScore    *float64           `json:"averageScore"`
+	BestScore       *float64           `json:"bestScore"`
+	RecentScores    []float64          `json:"recentScores"`
+	SessionsByType  map[string]int     `json:"sessionsByType"`
+}
