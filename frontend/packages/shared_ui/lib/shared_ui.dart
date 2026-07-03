@@ -38,6 +38,74 @@ class ScoreChip extends StatelessWidget {
   }
 }
 
+class ScoreTrendChart extends StatelessWidget {
+  const ScoreTrendChart({
+    super.key,
+    required this.label,
+    required this.values,
+    required this.color,
+  });
+
+  final String label;
+  final List<double> values;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    if (values.isEmpty) {
+      return Text('No $label data yet.');
+    }
+
+    final maxValue = values.reduce((a, b) => a > b ? a : b).clamp(1.0, 100.0);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: Theme.of(context).textTheme.titleSmall),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 120,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: values.asMap().entries.map((entry) {
+              final heightFactor = entry.value / maxValue;
+              return Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Text(
+                        entry.value.round().toString(),
+                        style: Theme.of(context).textTheme.labelSmall,
+                      ),
+                      const SizedBox(height: 4),
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.bottomCenter,
+                          child: FractionallySizedBox(
+                            heightFactor: heightFactor,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: color,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class PitchMeter extends StatelessWidget {
   const PitchMeter({
     super.key,

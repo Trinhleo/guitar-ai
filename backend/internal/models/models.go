@@ -105,12 +105,21 @@ type PracticeHistoryResponse struct {
 }
 
 type UserProgress struct {
-	TotalSessions   int                `json:"totalSessions"`
-	EvaluatedCount  int                `json:"evaluatedCount"`
-	AverageScore    *float64           `json:"averageScore"`
-	BestScore       *float64           `json:"bestScore"`
-	RecentScores    []float64          `json:"recentScores"`
-	SessionsByType  map[string]int     `json:"sessionsByType"`
+	TotalSessions  int                `json:"totalSessions"`
+	EvaluatedCount int                `json:"evaluatedCount"`
+	AverageScore   *float64           `json:"averageScore"`
+	BestScore      *float64           `json:"bestScore"`
+	RecentScores   []float64          `json:"recentScores"`
+	SessionsByType map[string]int     `json:"sessionsByType"`
+	Trends         []ProgressTrendPoint `json:"trends"`
+}
+
+type ProgressTrendPoint struct {
+	SessionID      string    `json:"sessionId"`
+	CreatedAt      time.Time `json:"createdAt"`
+	OverallScore   *float64  `json:"overallScore"`
+	PitchAccuracy  *float64  `json:"pitchAccuracy"`
+	TimingAccuracy *float64  `json:"timingAccuracy"`
 }
 
 type Achievement struct {

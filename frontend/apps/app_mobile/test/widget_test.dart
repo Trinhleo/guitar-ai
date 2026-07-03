@@ -56,7 +56,7 @@ void main() {
   });
 
   group('UserProgress', () {
-    test('parses progress payload', () {
+    test('parses progress payload with trends', () {
       final progress = UserProgress.fromJson({
         'totalSessions': 3,
         'evaluatedCount': 2,
@@ -64,10 +64,20 @@ void main() {
         'bestScore': 95.0,
         'recentScores': [95.0, 82.0],
         'sessionsByType': {'lesson': 2, 'solo': 1},
+        'trends': [
+          {
+            'sessionId': 'abc',
+            'createdAt': '2026-07-03T00:00:00Z',
+            'overallScore': 90.0,
+            'pitchAccuracy': 92.0,
+            'timingAccuracy': 88.0,
+          },
+        ],
       });
 
       expect(progress.totalSessions, 3);
-      expect(progress.sessionsByType['lesson'], 2);
+      expect(progress.trends.length, 1);
+      expect(progress.trends.first.pitchAccuracy, 92.0);
     });
   });
 }

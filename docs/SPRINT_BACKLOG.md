@@ -71,6 +71,38 @@ Requires `gh auth login` with `repo` scope.
 | WebSocket feedback | ✅ Done |
 | Microphone + pitch detection | ✅ Done |
 | Flutter mobile app | ✅ Done |
+| Achievements + speed + pitch viz | ✅ Done |
+| app_shared refactor | ✅ Done |
+| Progress charts | ✅ Done |
+| Piano + more content | ✅ Done |
+
+---
+
+## Sprint 4 — Refactor & Multi-Instrument
+
+### #18 — Refactor shared screens (`app_shared`)
+- **Priority:** P0 · **Area:** frontend
+- **Goal:** Single package for screens/services shared by web + mobile
+- **Acceptance:**
+  - [x] `frontend/packages/app_shared` created
+  - [x] Web + mobile depend on `app_shared`
+  - [x] Duplicate screen files removed from apps
+
+### #19 — Progress charts
+- **Priority:** P0 · **Area:** backend + frontend
+- **Goal:** Pitch/timing trends over sessions
+- **Acceptance:**
+  - [x] `trends` array in `GET /api/stats/progress`
+  - [x] `ScoreTrendChart` widget on Progress screen
+  - [x] Integration tests
+
+### #20 — Piano instrument + content
+- **Priority:** P1 · **Area:** backend
+- **Goal:** Second instrument with lessons
+- **Acceptance:**
+  - [x] Piano in `instruments` table
+  - [x] Migration with 2+ piano lessons + 1 guitar lesson
+  - [x] Visible in Flutter library (filter by type)
 
 ---
 
