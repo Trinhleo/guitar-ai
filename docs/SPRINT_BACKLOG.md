@@ -58,14 +58,19 @@ Requires `gh auth login` with `repo` scope.
 
 ## Current status (as of 2026-07-03)
 
-| Item | Status | PR |
-|------|--------|-----|
-| Go MVP backend | ✅ Done | #2 (merged) |
-| Flutter web frontend | 🔄 In Review | #3 |
-| JWT auth | 📋 Sprint 1 | — |
-| Practice history | 📋 Sprint 1 | — |
-| WebSocket feedback | 📋 Sprint 2 | — |
-| Microphone + pitch | 📋 Sprint 2 | — |
+| Item | Status |
+|------|--------|
+| Go MVP backend | ✅ Done |
+| Flutter web frontend | ✅ Done |
+| JWT auth (backend + Flutter) | ✅ Done |
+| Practice history API + UI | ✅ Done |
+| Progress stats API + UI | ✅ Done |
+| Seed content (solos + chords) | ✅ Done |
+| Docker Compose (API + Postgres) | ✅ Done |
+| CI pipeline (Go + Flutter) | ✅ Done |
+| WebSocket feedback | 📋 Sprint 2 |
+| Microphone + pitch detection | 📋 Sprint 2 |
+| Flutter mobile app | 📋 Sprint 2 |
 
 ---
 

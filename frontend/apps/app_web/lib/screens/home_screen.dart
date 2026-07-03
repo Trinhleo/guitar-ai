@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:network/network.dart';
 
 import '../services/auth_store.dart';
+import 'history_screen.dart';
 import 'library_screen.dart';
+import 'progress_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
@@ -35,6 +37,28 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: const Text('Guitar AI Tutor'),
         actions: [
+          IconButton(
+            tooltip: 'Progress',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => ProgressScreen(api: widget.api),
+                ),
+              );
+            },
+            icon: const Icon(Icons.insights),
+          ),
+          IconButton(
+            tooltip: 'History',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => HistoryScreen(api: widget.api),
+                ),
+              );
+            },
+            icon: const Icon(Icons.history),
+          ),
           if (widget.auth.email != null)
             Center(
               child: Padding(

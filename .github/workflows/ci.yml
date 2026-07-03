@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: guitar
+          POSTGRES_PASSWORD: guitar
+          POSTGRES_DB: guitar_ai_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U guitar -d guitar_ai_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+
+      - name: Create test database extras
+        run: |
+          PGPASSWORD=guitar psql -h localhost -U guitar -d guitar_ai_test -c "SELECT 1"
+
+      - name: Run Go tests
+        working-directory: backend
+        env:
+          GO_ENV: test
+          DATABASE_URL_TEST: postgresql://guitar:guitar@localhost:5432/guitar_ai_test
+          JWT_SECRET: ci-test-jwt-secret
+        run: |
+          go run ./cmd/server migrate
+          go test ./... -count=1
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Run Flutter tests
+        working-directory: frontend/apps/app_web
+        run: |
+          flutter pub get
+          flutter analyze
+          flutter test

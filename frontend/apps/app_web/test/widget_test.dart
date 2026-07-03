@@ -54,4 +54,20 @@ void main() {
       expect(api.token, 'abc123');
     });
   });
+
+  group('UserProgress', () {
+    test('parses progress payload', () {
+      final progress = UserProgress.fromJson({
+        'totalSessions': 3,
+        'evaluatedCount': 2,
+        'averageScore': 88.5,
+        'bestScore': 95.0,
+        'recentScores': [95.0, 82.0],
+        'sessionsByType': {'lesson': 2, 'solo': 1},
+      });
+
+      expect(progress.totalSessions, 3);
+      expect(progress.sessionsByType['lesson'], 2);
+    });
+  });
 }

@@ -141,3 +141,90 @@ class PracticeResults {
     );
   }
 }
+
+class PracticeHistoryItem {
+  PracticeHistoryItem({
+    required this.sessionId,
+    required this.contentTitle,
+    required this.contentType,
+    required this.instrumentId,
+    required this.overallScore,
+    required this.createdAt,
+  });
+
+  final String sessionId;
+  final String contentTitle;
+  final String contentType;
+  final String instrumentId;
+  final double? overallScore;
+  final String createdAt;
+
+  factory PracticeHistoryItem.fromJson(Map<String, dynamic> json) {
+    return PracticeHistoryItem(
+      sessionId: json['sessionId'] as String,
+      contentTitle: json['contentTitle'] as String,
+      contentType: json['contentType'] as String,
+      instrumentId: json['instrumentId'] as String,
+      overallScore: (json['overallScore'] as num?)?.toDouble(),
+      createdAt: json['createdAt'] as String,
+    );
+  }
+}
+
+class PracticeHistoryResponse {
+  PracticeHistoryResponse({
+    required this.items,
+    required this.total,
+  });
+
+  final List<PracticeHistoryItem> items;
+  final int total;
+
+  factory PracticeHistoryResponse.fromJson(Map<String, dynamic> json) {
+    final items = (json['items'] as List<dynamic>? ?? [])
+        .map((item) => PracticeHistoryItem.fromJson(item as Map<String, dynamic>))
+        .toList();
+    return PracticeHistoryResponse(
+      items: items,
+      total: json['total'] as int? ?? items.length,
+    );
+  }
+}
+
+class UserProgress {
+  UserProgress({
+    required this.totalSessions,
+    required this.evaluatedCount,
+    required this.averageScore,
+    required this.bestScore,
+    required this.recentScores,
+    required this.sessionsByType,
+  });
+
+  final int totalSessions;
+  final int evaluatedCount;
+  final double? averageScore;
+  final double? bestScore;
+  final List<double> recentScores;
+  final Map<String, int> sessionsByType;
+
+  factory UserProgress.fromJson(Map<String, dynamic> json) {
+    final recent = (json['recentScores'] as List<dynamic>? ?? [])
+        .map((v) => (v as num).toDouble())
+        .toList();
+    final byTypeRaw = json['sessionsByType'] as Map<String, dynamic>? ?? {};
+    final byType = <String, int>{};
+    byTypeRaw.forEach((key, value) {
+      byType[key] = value as int;
+    });
+
+    return UserProgress(
+      totalSessions: json['totalSessions'] as int? ?? 0,
+      evaluatedCount: json['evaluatedCount'] as int? ?? 0,
+      averageScore: (json['averageScore'] as num?)?.toDouble(),
+      bestScore: (json['bestScore'] as num?)?.toDouble(),
+      recentScores: recent,
+      sessionsByType: byType,
+    );
+  }
+}

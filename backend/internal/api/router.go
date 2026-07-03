@@ -35,9 +35,14 @@ func NewRouter(store *service.Store, cfg config.Config) http.Handler {
 		})
 		r.Route("/practice", func(r chi.Router) {
 			r.Use(AuthMiddleware(authService))
+			r.Get("/history", handler.ListPracticeHistory)
 			r.Post("/start/{contentId}", handler.StartPractice)
 			r.Post("/{sessionId}/evaluate", handler.EvaluatePractice)
 			r.Get("/{sessionId}/results", handler.GetPracticeResults)
+		})
+		r.Route("/stats", func(r chi.Router) {
+			r.Use(AuthMiddleware(authService))
+			r.Get("/progress", handler.GetProgress)
 		})
 	})
 

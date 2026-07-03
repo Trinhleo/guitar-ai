@@ -23,17 +23,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
   @override
   void initState() {
     super.initState();
-    _contentFuture = widget.api.listContent(
-      type: 'lesson',
-      instrument: widget.instrument.id,
-    );
+    _contentFuture = widget.api.listContent(instrument: widget.instrument.id);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('${widget.instrument.name} Lessons'),
+        title: Text('${widget.instrument.name} Library'),
       ),
       body: FutureBuilder<List<MusicalContent>>(
         future: _contentFuture,
