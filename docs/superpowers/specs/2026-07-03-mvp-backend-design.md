@@ -1,7 +1,7 @@
 # MVP Backend Design Spec
 
 **Date:** 2026-07-03  
-**Status:** Draft — pending review  
+**Status:** Approved — Go backend implemented  
 **Scope:** Phase 1 MVP backend only (no frontend yet)
 
 ---
@@ -34,24 +34,24 @@ Deliver a **testable MVP backend** that:
 ### Recommended: Backend-first vertical slice
 
 ```
-Client (curl/tests) → Express REST API → PostgreSQL
+Client (curl/tests) → Go REST API (chi) → PostgreSQL
                               ↓
-                     EvaluationEngine (pure JS)
+                     EvaluationEngine (pure Go)
 ```
 
 **Why not Flutter-first?** No API to call; harder to verify behavior end-to-end.  
-**Why not Python/FastAPI?** README project structure and file tree use Node.js/Express; stay consistent unless we explicitly pivot.  
+**Why Go?** Strong typing, excellent performance for API services, simple deployment as a single binary, and great test tooling for the evaluation engine.  
 **Why not full stack now?** Doubles surface area; backend logic (scoring, content) is the core differentiator and is easiest to TDD in isolation.
 
 ### Tech choices
 
 | Concern | Choice | Rationale |
 |---------|--------|-----------|
-| Runtime | Node.js 20 + Express | Matches README structure |
-| Language | JavaScript (CommonJS) | Matches README `.js` paths; no TS toolchain yet |
+| Runtime | Go 1.22 + chi router | Fast, typed, single-binary deployment |
 | Database | PostgreSQL 16 | Matches README schema |
-| Migrations | Raw SQL files + `node-pg-migrate` | Simple, explicit, version-controlled |
-| Testing | Jest + Supertest | Standard for Express; supports TDD |
+| DB driver | pgx/v5 | Idiomatic Postgres driver for Go |
+| Migrations | Raw SQL files | Simple, explicit, version-controlled |
+| Testing | Go `testing` + httptest | Native TDD support |
 | Test DB | Separate `guitar_ai_test` DB | Real integration tests, not mocks |
 | Audio (Phase 1) | Accept structured note events in JSON | TDD-friendly; real audio pipeline in Phase 2 |
 
@@ -137,20 +137,21 @@ For MVP, technique/expression/consistency derive from pitch+timing variance (no 
 ## Local Dev Flow
 
 ```bash
-docker-compose up -d          # postgres
-cd backend && npm install
-npm run migrate               # apply migrations + seed
-npm test                      # all tests green
-npm start                     # API on :5000
+docker-compose up -d          # postgres (or use local PostgreSQL)
+cp .env.example .env
+make migrate                # apply migrations + seed
+make test                   # all Go tests green
+make run                    # API on :5000
+make smoke                  # curl health + instruments
 ```
 
 ## Success Criteria
 
-- [ ] `npm test` passes with ≥15 tests
-- [ ] `docker-compose up` brings up Postgres + API
-- [ ] `GET /api/instruments` returns guitar
-- [ ] Full practice flow works: start → evaluate → results
-- [ ] Evaluation engine handles edge cases (empty notes, wrong notes, timing drift)
+- [x] `make test` passes with ≥15 tests
+- [x] PostgreSQL running locally or via Docker Compose
+- [x] `GET /api/instruments` returns guitar
+- [x] Full practice flow works: start → evaluate → results
+- [x] Evaluation engine handles edge cases (empty notes, wrong notes, timing drift)
 
 ## Phase 2 Preview (after MVP merges)
 
