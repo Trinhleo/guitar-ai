@@ -74,6 +74,32 @@ Requires `gh auth login` with `repo` scope.
 
 ---
 
+## Sprint 3 — Gamification & UX Polish
+
+### #15 — Achievements API + UI
+- **Priority:** P1 · **Area:** backend + frontend
+- **Goal:** Milestone badges based on practice stats
+- **Acceptance:**
+  - [x] `GET /api/stats/achievements`
+  - [x] Achievements screen in Flutter (web + mobile)
+  - [x] Integration tests
+
+### #16 — Practice speed control
+- **Priority:** P1 · **Area:** frontend
+- **Goal:** Practice at 50%, 75%, or 100% tempo
+- **Acceptance:**
+  - [x] Speed selector on practice screen
+  - [x] Note timings scaled for evaluation
+
+### #17 — Live pitch visualization
+- **Priority:** P1 · **Area:** frontend
+- **Goal:** Real-time pitch/timing meters during practice
+- **Acceptance:**
+  - [x] `PitchMeter` widget in shared_ui
+  - [x] Shown on practice screen with live feedback
+
+---
+
 ## Sprint 1 — Core UX
 
 ### #1 — Merge & verify Flutter web frontend

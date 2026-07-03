@@ -47,6 +47,7 @@ func NewRouter(store *service.Store, cfg config.Config) http.Handler {
 		r.Route("/stats", func(r chi.Router) {
 			r.Use(AuthMiddleware(authService))
 			r.Get("/progress", handler.GetProgress)
+			r.Get("/achievements", handler.GetAchievements)
 		})
 	})
 

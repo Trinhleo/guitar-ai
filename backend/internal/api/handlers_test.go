@@ -417,6 +417,24 @@ func TestPracticeHistoryAndProgress(t *testing.T) {
 	if int(progress["totalSessions"].(float64)) < 1 {
 		t.Fatalf("expected totalSessions >= 1, got %+v", progress)
 	}
+
+	achievementsReq := httptest.NewRequest(http.MethodGet, "/api/stats/achievements", nil)
+	achievementsReq.Header.Set("Authorization", authHeader(authResp.Token))
+	achievementsRec := httptest.NewRecorder()
+	router.ServeHTTP(achievementsRec, achievementsReq)
+
+	if achievementsRec.Code != http.StatusOK {
+		t.Fatalf("achievements status = %d, body = %s", achievementsRec.Code, achievementsRec.Body.String())
+	}
+
+	var achievementsBody map[string]any
+	if err := json.Unmarshal(achievementsRec.Body.Bytes(), &achievementsBody); err != nil {
+		t.Fatalf("decode achievements: %v", err)
+	}
+	achievements := achievementsBody["achievements"].([]any)
+	if len(achievements) == 0 {
+		t.Fatal("expected achievements list")
+	}
 }
 
 func TestUploadPracticeAudio(t *testing.T) {

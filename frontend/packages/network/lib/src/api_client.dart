@@ -167,6 +167,19 @@ class ApiClient {
     );
   }
 
+  Future<List<Achievement>> getAchievements() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/stats/achievements'),
+      headers: _jsonHeaders,
+    );
+    _ensureSuccess(response);
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    final items = body['achievements'] as List<dynamic>? ?? [];
+    return items
+        .map((item) => Achievement.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
   Future<Map<String, dynamic>> uploadPracticeAudio({
     required String sessionId,
     required List<int> wavBytes,

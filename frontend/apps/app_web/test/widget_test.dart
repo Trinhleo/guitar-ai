@@ -55,20 +55,17 @@ void main() {
     });
   });
 
-  group('LiveFeedback', () {
-    test('parses websocket feedback payload', () {
-      final feedback = LiveFeedback.fromJson({
-        'partialScore': 85.5,
-        'pitchAccuracy': 90.0,
-        'timingAccuracy': 80.0,
-        'matchedNotes': 2,
-        'totalNotes': 3,
-        'message': 'Good pitch — watch your timing.',
+  group('Achievement', () {
+    test('parses achievement payload', () {
+      final achievement = Achievement.fromJson({
+        'id': 'first_session',
+        'title': 'First Steps',
+        'description': 'Complete your first practice session',
+        'unlocked': true,
       });
 
-      expect(feedback.partialScore, 85.5);
-      expect(feedback.matchedNotes, 2);
-      expect(feedback.message, contains('pitch'));
+      expect(achievement.unlocked, isTrue);
+      expect(achievement.title, 'First Steps');
     });
   });
 }

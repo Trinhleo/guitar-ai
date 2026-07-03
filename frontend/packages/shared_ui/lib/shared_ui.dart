@@ -37,3 +37,55 @@ class ScoreChip extends StatelessWidget {
     );
   }
 }
+
+class PitchMeter extends StatelessWidget {
+  const PitchMeter({
+    super.key,
+    required this.pitchAccuracy,
+    this.timingAccuracy,
+  });
+
+  final double pitchAccuracy;
+  final double? timingAccuracy;
+
+  Color _colorForScore(double score) {
+    if (score >= 90) return Colors.green;
+    if (score >= 70) return Colors.orange;
+    return Colors.red;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pitch = pitchAccuracy.clamp(0, 100) / 100;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Pitch', style: Theme.of(context).textTheme.labelMedium),
+        const SizedBox(height: 4),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: pitch,
+            minHeight: 10,
+            backgroundColor: Colors.grey.shade300,
+            color: _colorForScore(pitchAccuracy),
+          ),
+        ),
+        if (timingAccuracy != null) ...[
+          const SizedBox(height: 12),
+          Text('Timing', style: Theme.of(context).textTheme.labelMedium),
+          const SizedBox(height: 4),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: timingAccuracy!.clamp(0, 100) / 100,
+              minHeight: 10,
+              backgroundColor: Colors.grey.shade300,
+              color: _colorForScore(timingAccuracy!),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
