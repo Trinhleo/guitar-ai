@@ -30,4 +30,28 @@ void main() {
       expect(content.expectedNotes.first.note, 'E4');
     });
   });
+
+  group('AuthResponse', () {
+    test('parses auth payload', () {
+      final auth = AuthResponse.fromJson({
+        'token': 'jwt-token',
+        'userId': 'user-123',
+        'email': 'student@example.com',
+      });
+
+      expect(auth.token, 'jwt-token');
+      expect(auth.userId, 'user-123');
+      expect(auth.email, 'student@example.com');
+    });
+  });
+
+  group('ApiClient', () {
+    test('stores bearer token for authenticated requests', () {
+      final api = ApiClient();
+      expect(api.token, isNull);
+
+      api.token = 'abc123';
+      expect(api.token, 'abc123');
+    });
+  });
 }

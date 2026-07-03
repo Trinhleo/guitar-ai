@@ -10,6 +10,56 @@ class ApiClient {
   static const _defaultBaseUrl = 'http://localhost:5000';
 
   final String baseUrl;
+  String? _token;
+
+  String? get token => _token;
+
+  set token(String? value) => _token = value;
+
+  Map<String, String> get _jsonHeaders => {
+        'Content-Type': 'application/json',
+        if (_token != null && _token!.isNotEmpty) 'Authorization': 'Bearer $_token',
+      };
+
+  Future<AuthResponse> register({
+    required String email,
+    required String password,
+    String? displayName,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/api/auth/register'),
+      headers: _jsonHeaders,
+      body: jsonEncode({
+        'email': email,
+        'password': password,
+        if (displayName != null && displayName.isNotEmpty)
+          'displayName': displayName,
+      }),
+    );
+    _ensureSuccess(response, expectedStatus: 201);
+    final auth = AuthResponse.fromJson(
+      jsonDecode(response.body) as Map<String, dynamic>,
+    );
+    token = auth.token;
+    return auth;
+  }
+
+  Future<AuthResponse> login({
+    required String email,
+    required String password,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/api/auth/login'),
+      headers: _jsonHeaders,
+      body: jsonEncode({'email': email, 'password': password}),
+    );
+    _ensureSuccess(response);
+    final auth = AuthResponse.fromJson(
+      jsonDecode(response.body) as Map<String, dynamic>,
+    );
+    token = auth.token;
+    return auth;
+  }
 
   Future<List<Instrument>> listInstruments() async {
     final response = await http.get(Uri.parse('$baseUrl/api/instruments'));
@@ -52,7 +102,7 @@ class ApiClient {
   }) async {
     final response = await http.post(
       Uri.parse('$baseUrl/api/practice/start/$contentId'),
-      headers: {'Content-Type': 'application/json'},
+      headers: _jsonHeaders,
       body: jsonEncode({'instrumentId': instrumentId}),
     );
     _ensureSuccess(response, expectedStatus: 201);
@@ -66,7 +116,7 @@ class ApiClient {
   }) async {
     final response = await http.post(
       Uri.parse('$baseUrl/api/practice/$sessionId/evaluate'),
-      headers: {'Content-Type': 'application/json'},
+      headers: _jsonHeaders,
       body: jsonEncode({
         'playedNotes': playedNotes.map((note) => note.toJson()).toList(),
       }),
@@ -78,8 +128,10 @@ class ApiClient {
   }
 
   Future<PracticeResults> getResults(String sessionId) async {
-    final response =
-        await http.get(Uri.parse('$baseUrl/api/practice/$sessionId/results'));
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/practice/$sessionId/results'),
+      headers: _jsonHeaders,
+    );
     _ensureSuccess(response);
     return PracticeResults.fromJson(
       jsonDecode(response.body) as Map<String, dynamic>,

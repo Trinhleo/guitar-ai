@@ -1,3 +1,23 @@
+class AuthResponse {
+  AuthResponse({
+    required this.token,
+    required this.userId,
+    required this.email,
+  });
+
+  final String token;
+  final String userId;
+  final String email;
+
+  factory AuthResponse.fromJson(Map<String, dynamic> json) {
+    return AuthResponse(
+      token: json['token'] as String,
+      userId: json['userId'] as String,
+      email: json['email'] as String,
+    );
+  }
+}
+
 class Instrument {
   Instrument({
     required this.id,
