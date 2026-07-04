@@ -65,6 +65,16 @@ jobs:
             echo "::error::OCI_API_PRIVATE_KEY must include PEM BEGIN/END lines"
             exit 1
           fi
+          if [[ "$OCI_USER_OCID" == "$OCI_TENANCY_OCID" ]]; then
+            echo "::error::OCI_USER_OCID must be the USER OCID, not the tenancy OCID"
+            exit 1
+          fi
+          if [[ "$OCI_USER_OCID" != ocid1.user.* ]]; then
+            echo "::warning::OCI_USER_OCID should start with ocid1.user"
+          fi
+          if [[ "$OCI_FINGERPRINT" != *:* ]]; then
+            echo "::warning::OCI_FINGERPRINT usually contains colons (aa:bb:cc:...)"
+          fi
         env:
           OCI_TENANCY_OCID: ${{ secrets.OCI_TENANCY_OCID }}
           OCI_USER_OCID: ${{ secrets.OCI_USER_OCID }}
@@ -82,8 +92,20 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$HOME/.oci"
-          printf '%s\n' "$OCI_API_PRIVATE_KEY" > "$HOME/.oci/oci_api_key.pem"
+          # Preserve PEM newlines; also accept secrets pasted with literal \n
+          if grep -q '\\n' <<<"$OCI_API_PRIVATE_KEY"; then
+            printf '%b' "$OCI_API_PRIVATE_KEY" > "$HOME/.oci/oci_api_key.pem"
+          else
+            printf '%s\n' "$OCI_API_PRIVATE_KEY" > "$HOME/.oci/oci_api_key.pem"
+          fi
+          tr -d '\r' < "$HOME/.oci/oci_api_key.pem" > "$HOME/.oci/oci_api_key.pem.tmp"
+          mv "$HOME/.oci/oci_api_key.pem.tmp" "$HOME/.oci/oci_api_key.pem"
           chmod 600 "$HOME/.oci/oci_api_key.pem"
+          pem_lines=$(wc -l < "$HOME/.oci/oci_api_key.pem")
+          if [[ "$pem_lines" -lt 3 ]]; then
+            echo "::error::OCI_API_PRIVATE_KEY looks like a single line — re-paste the full PEM with real line breaks"
+            exit 1
+          fi
           {
             echo '[DEFAULT]'
             echo "user=${OCI_USER_OCID}"
@@ -92,7 +114,10 @@ jobs:
             echo "region=${OCI_REGION}"
             echo "key_file=${HOME}/.oci/oci_api_key.pem"
           } > "$HOME/.oci/config"
-          oci iam region list --limit 1 >/dev/null
+          if ! oci iam region list --limit 1 --query 'data[0].name' --raw-output; then
+            echo "::error::OCI authentication failed — check USER OCID, FINGERPRINT, and PEM belong to the same API key"
+            exit 1
+          fi
           echo "OCI CLI authenticated for region ${OCI_REGION}"
         env:
           OCI_USER_OCID: ${{ secrets.OCI_USER_OCID }}
