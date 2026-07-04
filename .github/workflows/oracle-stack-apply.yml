@@ -56,14 +56,14 @@ jobs:
           mkdir -p "$HOME/.oci"
           printf '%s\n' "$OCI_API_PRIVATE_KEY" > "$HOME/.oci/oci_api_key.pem"
           chmod 600 "$HOME/.oci/oci_api_key.pem"
-          cat > "$HOME/.oci/config" <<EOF
-[DEFAULT]
-user=${OCI_USER_OCID}
-fingerprint=${OCI_FINGERPRINT}
-tenancy=${OCI_TENANCY_OCID}
-region=${OCI_REGION}
-key_file=${HOME}/.oci/oci_api_key.pem
-EOF
+          {
+            echo '[DEFAULT]'
+            echo "user=${OCI_USER_OCID}"
+            echo "fingerprint=${OCI_FINGERPRINT}"
+            echo "tenancy=${OCI_TENANCY_OCID}"
+            echo "region=${OCI_REGION}"
+            echo "key_file=${HOME}/.oci/oci_api_key.pem"
+          } > "$HOME/.oci/config"
           oci iam region list --limit 1 >/dev/null
           echo "OCI CLI authenticated for region ${OCI_REGION}"
         env:
@@ -76,8 +76,8 @@ EOF
       - name: Apply stack (retry until success or limit)
         run: |
           set -euo pipefail
-          MAX="${{ github.event_name == 'workflow_dispatch' && inputs.max_attempts || '3' }}"
-          INTERVAL="${{ github.event_name == 'workflow_dispatch' && inputs.interval_sec || '90' }}"
+          MAX="${MAX_ATTEMPTS}"
+          INTERVAL="${INTERVAL_SEC}"
           VM_NAME="${ORACLE_VM_NAME:-musica-tutor-vm}"
 
           echo "Stack: ${OCI_STACK_ID}"
@@ -94,6 +94,8 @@ EOF
         env:
           OCI_STACK_ID: ${{ secrets.OCI_STACK_ID }}
           ORACLE_VM_NAME: ${{ vars.ORACLE_VM_NAME }}
+          MAX_ATTEMPTS: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.max_attempts || '3' }}
+          INTERVAL_SEC: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.interval_sec || '90' }}
 
       - name: Hint after success
         if: success()
