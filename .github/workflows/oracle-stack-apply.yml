@@ -101,9 +101,21 @@ jobs:
           tr -d '\r' < "$HOME/.oci/oci_api_key.pem" > "$HOME/.oci/oci_api_key.pem.tmp"
           mv "$HOME/.oci/oci_api_key.pem.tmp" "$HOME/.oci/oci_api_key.pem"
           chmod 600 "$HOME/.oci/oci_api_key.pem"
-          chmod 600 "$HOME/.oci/config"
           export OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING=True
           pem_lines=$(wc -l < "$HOME/.oci/oci_api_key.pem")
+          if [[ "$pem_lines" -lt 3 ]]; then
+            # GitHub secrets often collapse PEM to one line — try restoring newlines
+            if grep -q 'BEGIN.*PRIVATE KEY' "$HOME/.oci/oci_api_key.pem"; then
+              sed 's/-----BEGIN /\
+-----BEGIN /g; s/-----END /\
+-----END /g; s/ /\n/g' "$HOME/.oci/oci_api_key.pem" > "$HOME/.oci/oci_api_key.pem.tmp" || true
+              if [[ $(wc -l < "$HOME/.oci/oci_api_key.pem.tmp") -ge 3 ]]; then
+                mv "$HOME/.oci/oci_api_key.pem.tmp" "$HOME/.oci/oci_api_key.pem"
+                chmod 600 "$HOME/.oci/oci_api_key.pem"
+                pem_lines=$(wc -l < "$HOME/.oci/oci_api_key.pem")
+              fi
+            fi
+          fi
           if [[ "$pem_lines" -lt 3 ]]; then
             echo "::error::OCI_API_PRIVATE_KEY looks like a single line — re-paste the full PEM with real line breaks"
             exit 1
@@ -116,6 +128,7 @@ jobs:
             echo "region=${OCI_REGION}"
             echo "key_file=${HOME}/.oci/oci_api_key.pem"
           } > "$HOME/.oci/config"
+          chmod 600 "$HOME/.oci/config"
           if ! oci iam region list --query 'data[0].name' --raw-output 2>&1; then
             echo "::error::OCI authentication failed — check USER OCID, FINGERPRINT, and PEM belong to the same API key"
             exit 1
