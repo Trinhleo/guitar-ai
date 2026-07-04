@@ -41,7 +41,7 @@ class _GuitarAiAppState extends State<GuitarAiApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Guitar AI Tutor',
+      title: 'Music AI Tutor',
       theme: AppTheme.light(),
       home: !_ready
           ? const Scaffold(body: Center(child: CircularProgressIndicator()))

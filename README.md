@@ -135,7 +135,7 @@ guitar-ai/
 
 ### Prerequisites
 
-- Go 1.22+
+- Go 1.25+
 - PostgreSQL 16+ (or Docker)
 - Flutter 3.16+ (for frontend)
 - Git
@@ -269,20 +269,29 @@ GET    /api/content/:contentId/instrument/:instrumentId
 
 ```
 POST   /api/practice/start/:contentId     -- Start practice session
-POST   /api/practice/:sessionId/record    -- Upload recorded audio
+POST   /api/practice/:sessionId/evaluate  -- Submit played notes for scoring
+POST   /api/practice/:sessionId/upload    -- Upload WAV for pitch detection + scoring
 GET    /api/practice/:sessionId/results   -- Get evaluation results
-GET    /api/practice/history              -- Get practice history
+GET    /api/practice/history              -- Get practice history (paginated)
 ```
 
 ### Statistics & Progress
 
 ```
-GET    /api/stats/progress                -- Overall progress
-GET    /api/stats/content/:contentId      -- Stats for specific content
-GET    /api/achievements                  -- User achievements
+GET    /api/stats/progress                -- Overall progress + trends
+GET    /api/stats/achievements            -- User achievement badges
+GET    /api/stats/leaderboard             -- Rankings by average score
+GET    /api/stats/insights                -- Personalized practice tips
+GET    /api/content/recommendations       -- Difficulty-aware content suggestions
 ```
 
-See [API_SPEC.md](docs/API_SPEC.md) for complete API documentation.
+### Real-time
+
+```
+GET    /ws/practice/:sessionId            -- WebSocket live feedback during practice
+```
+
+See [docs/API_SPEC.md](docs/API_SPEC.md) for complete API documentation.
 
 ---
 
@@ -327,34 +336,37 @@ See [API_SPEC.md](docs/API_SPEC.md) for complete API documentation.
 - [x] Real-time pitch visualization
 - [x] Detailed performance metrics
 - [x] Practice history & dashboard
-- [ ] Technique-specific feedback
+- [x] Technique hints (rule-based feedback)
 - [x] Multiple speed variations
 - [x] WebSocket real-time feedback
 
 ### Phase 3: Enhancement (Weeks 7-9)
-- [ ] Advanced AI insights
+- [x] Practice insights API
 - [x] Achievements & gamification
-- [x] Multiple instrument support refinement
+- [x] Multiple instrument support (guitar, piano, violin, drums)
 - [ ] Performance optimization
 - [x] Mobile-responsive UI
 
 ### Phase 4: Scale & Polish (Weeks 10+)
 - [x] Mobile app (Flutter iOS/Android)
-- [ ] Advanced recommendation engine
-- [ ] Social features
-- [ ] Cloud deployment
+- [x] Recommendation engine (difficulty-aware)
+- [x] Social features (leaderboard)
+- [x] Cloud deployment configs (Docker prod, Fly.io)
 - [ ] Analytics dashboard
 
 ---
 
 ## 🎸 Supported Instruments
 
-### Currently Planning
+### Currently Available
 
-- ✅ Guitar (Primary focus)
-- ⏳ Piano
-- ⏳ Violin
-- ⏳ Drums
+- ✅ Guitar
+- ✅ Piano
+- ✅ Violin
+- ✅ Drums
+
+### Planned
+
 - ⏳ Flute
 - ⏳ Trumpet
 - ⏳ Bass
@@ -362,14 +374,13 @@ See [API_SPEC.md](docs/API_SPEC.md) for complete API documentation.
 
 ### Extensibility
 
-The system is designed to be easily extensible. To add a new instrument:
+To add a new instrument:
 
-1. Add instrument config to `config/instruments.js`
-2. Create instrument-specific module in `services/instruments/`
-3. Implement technique detection methods
-4. Update evaluation engine with custom metrics
+1. Add a SQL migration under `backend/migrations/` with instrument config + seed content
+2. Tune `pitchToleranceCents` / `timingToleranceMs` in the instrument `config` JSONB
+3. Content appears automatically in the Flutter library (instruments loaded from API)
 
-See [INSTRUMENTS.md](docs/INSTRUMENTS.md) for details.
+See [docs/FLUTTER_ARCHITECTURE.md](docs/FLUTTER_ARCHITECTURE.md) for frontend structure.
 
 ---
 
@@ -433,21 +444,19 @@ Contributions are welcome! Here's how to help:
 
 ### Development Guidelines
 
-- Follow ESLint/Prettier for code style
+- Follow Go and Dart/Flutter conventions in each package
 - Write tests for new features
-- Update documentation
-- Test on multiple instruments if applicable
+- Update [docs/API_SPEC.md](docs/API_SPEC.md) when adding endpoints
+- Run `make test` and `make e2e-test` before opening PRs
 
 ---
 
 ## 📚 Documentation
 
-- [Architecture Overview](docs/ARCHITECTURE.md) - System design & components
-- [API Specification](docs/API_SPEC.md) - Complete API reference
-- [Database Schema](docs/DATABASE.md) - Database design & migrations
-- [Instruments Guide](docs/INSTRUMENTS.md) - Adding new instruments
-- [Setup Guide](docs/SETUP.md) - Detailed setup instructions
-- [Development Guide](docs/DEVELOPMENT.md) - Development workflow
+- [API Specification](docs/API_SPEC.md) - REST + WebSocket reference
+- [Deploy Guide](docs/DEPLOY.md) - Production deployment
+- [Sprint Backlog](docs/SPRINT_BACKLOG.md) - Kanban / issue tracking
+- [Flutter Architecture](docs/FLUTTER_ARCHITECTURE.md) - Frontend monorepo layout
 
 ---
 

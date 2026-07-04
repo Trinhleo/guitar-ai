@@ -21,6 +21,9 @@ func main() {
 	_ = godotenv.Load(".env")
 
 	cfg := config.Load()
+	if err := cfg.Validate(); err != nil {
+		log.Fatalf("invalid configuration: %v", err)
+	}
 	ctx := context.Background()
 
 	pool, err := db.NewPool(ctx, cfg.ActiveDatabaseURL())

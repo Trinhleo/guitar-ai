@@ -13,8 +13,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-const DemoUserID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
-
 var (
 	ErrNotFound = errors.New("not found")
 )
@@ -158,7 +156,15 @@ func (s *Store) EvaluateSession(ctx context.Context, sessionID, userID string, p
 	_, err = s.Pool.Exec(ctx, `
 		INSERT INTO performance_metrics
 		(session_id, pitch_accuracy, timing_accuracy, technique_score, expression_score, consistency_score, instrument_specific_metrics, played_notes)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		ON CONFLICT (session_id) DO UPDATE SET
+			pitch_accuracy = EXCLUDED.pitch_accuracy,
+			timing_accuracy = EXCLUDED.timing_accuracy,
+			technique_score = EXCLUDED.technique_score,
+			expression_score = EXCLUDED.expression_score,
+			consistency_score = EXCLUDED.consistency_score,
+			instrument_specific_metrics = EXCLUDED.instrument_specific_metrics,
+			played_notes = EXCLUDED.played_notes`,
 		sessionID, scores.PitchAccuracy, scores.TimingAccuracy, scores.TechniqueScore, scores.ExpressionScore, scores.ConsistencyScore, metricsJSON, playedNotesJSON,
 	)
 	if err != nil {

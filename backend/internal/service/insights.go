@@ -68,11 +68,47 @@ func (s *Store) GetLeaderboard(ctx context.Context, currentUserID, instrumentID 
 		return models.LeaderboardResponse{}, err
 	}
 
+	if currentUserRank == nil {
+		currentUserRank, err = s.leaderboardRankForUser(ctx, currentUserID, instrumentID)
+		if err != nil {
+			return models.LeaderboardResponse{}, err
+		}
+	}
+
 	return models.LeaderboardResponse{
 		Items:           items,
 		Instrument:      instrumentID,
 		CurrentUserRank: currentUserRank,
 	}, nil
+}
+
+func (s *Store) leaderboardRankForUser(ctx context.Context, userID, instrumentID string) (*int, error) {
+	query := `
+		SELECT rank FROM (
+			SELECT u.id,
+			       ROW_NUMBER() OVER (ORDER BY AVG(ps.overall_score) DESC, COUNT(*) DESC) AS rank
+			FROM practice_sessions ps
+			JOIN users u ON u.id = ps.user_id
+			WHERE ps.overall_score IS NOT NULL`
+	args := []any{userID}
+	if instrumentID != "" {
+		query += " AND ps.instrument_id = $2"
+		args = append(args, instrumentID)
+	}
+	query += `
+			GROUP BY u.id, u.display_name, u.email
+		) ranked
+		WHERE id = $1`
+
+	var rank int
+	err := s.Pool.QueryRow(ctx, query, args...).Scan(&rank)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &rank, nil
 }
 
 func (s *Store) GetPracticeInsights(ctx context.Context, userID string) (models.PracticeInsightsResponse, error) {

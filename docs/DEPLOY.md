@@ -15,6 +15,7 @@ docker compose up -d --build
 ```bash
 cp .env.example .env.prod
 # Set JWT_SECRET and POSTGRES_PASSWORD to strong values
+# Set GO_ENV=production so the API refuses weak JWT secrets
 ```
 
 2. Start:
