@@ -24,7 +24,8 @@ class _GuitarAiAppState extends State<GuitarAiApp> {
     super.initState();
     _api = ApiClient();
     _auth = AuthStore(_api);
-    _auth.restore().then((_) {
+    _auth.restore().then((_) async {
+      await _api.initialize();
       if (mounted) setState(() => _ready = true);
     });
   }

@@ -173,6 +173,8 @@ make e2e-test
 
 See [docs/DEPLOY.md](docs/DEPLOY.md) for production deployment (Docker Compose prod, Fly.io).
 
+For **dual deploy with automatic API fallback** (Fly + VPS), see [docs/DEPLOY_FALLBACK.md](docs/DEPLOY_FALLBACK.md).
+
 ---
 
 ## 🗄️ Database Schema

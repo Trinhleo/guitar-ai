@@ -78,3 +78,9 @@ Deploy Flutter web separately (e.g. Firebase Hosting, Cloudflare Pages, or the `
 make test
 make e2e-test
 ```
+
+## Dual deploy + fallback
+
+Deploy Fly.io and VPS Docker in parallel; Flutter client auto-fails over between API URLs.
+
+→ **[DEPLOY_FALLBACK.md](./DEPLOY_FALLBACK.md)**

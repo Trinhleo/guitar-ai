@@ -37,6 +37,7 @@ services:
       context: ./frontend
       args:
         API_BASE_URL: ""
+        API_FALLBACK_URLS: ${FLY_API_URL:-}
     ports:
       - "80:80"
     depends_on:
