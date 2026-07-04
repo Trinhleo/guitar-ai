@@ -30,13 +30,25 @@ jobs:
       - name: Validate required secrets
         run: |
           set -euo pipefail
-          check() { [[ -n "${1:-}" ]] || { echo "::error::Missing secret: $2"; exit 1; }; }
-          check "$OCI_TENANCY_OCID" "OCI_TENANCY_OCID"
-          check "$OCI_USER_OCID" "OCI_USER_OCID"
-          check "$OCI_FINGERPRINT" "OCI_FINGERPRINT"
-          check "$OCI_API_PRIVATE_KEY" "OCI_API_PRIVATE_KEY"
-          check "$OCI_REGION" "OCI_REGION"
-          check "$OCI_STACK_ID" "OCI_STACK_ID"
+          required=(OCI_TENANCY_OCID OCI_USER_OCID OCI_FINGERPRINT OCI_API_PRIVATE_KEY OCI_REGION OCI_STACK_ID)
+          missing=()
+          for name in "${required[@]}"; do
+            if [[ -z "${!name:-}" ]]; then
+              missing+=("$name")
+            fi
+          done
+          if [[ ${#missing[@]} -ne 0 ]]; then
+            echo "::error::Missing GitHub secrets: ${missing[*]}"
+            echo "Add them at Settings → Secrets and variables → Actions"
+            exit 1
+          fi
+          if ! grep -q 'BEGIN.*PRIVATE KEY' <<<"$OCI_API_PRIVATE_KEY"; then
+            echo "::error::OCI_API_PRIVATE_KEY must include PEM header/footer lines"
+            exit 1
+          fi
+          if [[ "$OCI_STACK_ID" != ocid1.ormstack.* ]]; then
+            echo "::warning::OCI_STACK_ID should start with ocid1.ormstack (Resource Manager stack OCID)"
+          fi
         env:
           OCI_TENANCY_OCID: ${{ secrets.OCI_TENANCY_OCID }}
           OCI_USER_OCID: ${{ secrets.OCI_USER_OCID }}
