@@ -21,10 +21,76 @@ git pull → docker compose up --build → /health OK
 
 ## One-time: Oracle VM setup
 
-### 1. Create VM (Oracle Console)
+### 1. Create VM
+
+#### Option A — Saved stack (recommended if you clicked "Save stack")
+
+If the Console showed **Out of capacity** and you saved a stack, use **Cloud Shell**:
+
+```bash
+git clone -b cursor/oracle-vm-retry-6dcd https://github.com/Trinhleo/guitar-ai.git ~/guitar-ai
+cd ~/guitar-ai
+chmod +x scripts/oracle-stack-apply-retry.sh
+
+./scripts/oracle-stack-apply-retry.sh \
+  --stack-id ocid1.ormstack.oc1.ap-singapore-1.amaaaaaaso7lw4iadqqwc7iggetnh6sj6jb5q6kojs6sim2xe7yili6xtlhq \
+  --interval 90
+```
+
+Behavior:
+
+- Retries **Apply stack** every 90s when AD is full
+- **Stops immediately** when apply succeeds or VM is already RUNNING (no spam)
+- Safe to run again later — skips if VM exists
+
+Requirements: **Oracle Cloud Shell** only (OCI CLI already logged in). No extra secrets.
+
+#### Option B — Direct CLI launch (no saved stack)
+
+Use **Oracle Cloud Shell** (Console → Cloud Shell icon). OCI CLI is pre-authenticated.
+
+```bash
+# 1) Generate SSH key in Cloud Shell (once)
+ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N ""
+cat ~/.ssh/id_ed25519.pub   # save private key if you SSH from local later
+
+# 2) Clone repo (or curl script only)
+git clone https://github.com/Trinhleo/guitar-ai.git ~/guitar-ai
+cd ~/guitar-ai
+chmod +x scripts/oracle-launch-vm-retry.sh
+
+# 3) Retry A1 across AD-1/2/3 until success (Ctrl+C to stop)
+./scripts/oracle-launch-vm-retry.sh \
+  --compartment musica-tutor-ai-prod \
+  --ssh-key-file ~/.ssh/id_ed25519.pub \
+  --create-network \
+  --open-ports \
+  --interval 90
+```
+
+Script output on success:
+
+```
+instance_id=ocid1.instance...
+public_ip=123.45.67.89
+ssh ubuntu@123.45.67.89
+```
+
+Options:
+
+| Flag | Purpose |
+|------|---------|
+| `--create-network` | Create VCN + public subnet if none exists |
+| `--open-ports` | Ensure security list allows TCP 22 + 80 |
+| `--interval 90` | Wait 90s between full AD cycles |
+| `--max-attempts 100` | Stop after 100 cycles (default: retry forever) |
+| `--fallback-micro` | Try E2.1.Micro (1 GB) if A1 never succeeds |
+| `--dry-run` | Print plan without creating resources |
+
+#### Option C — Oracle Console (manual)
 
 - Shape: **Ampere A1** (Always Free), Ubuntu 22.04+
-- Region: Singapore / Japan
+- Region: home region (e.g. Singapore)
 - Add your **SSH public key**
 - Security List: allow **TCP 80** (and 22 for SSH)
 
@@ -88,7 +154,56 @@ Test from local:
 ssh -i ~/.ssh/guitar-ai-deploy ubuntu@<ORACLE_IP> "echo OK"
 ```
 
-## One-time: GitHub repository setup
+## GitHub Actions: auto-retry stack apply (Out of capacity)
+
+When Ampere A1 is often **Out of capacity**, use workflow **Oracle Stack Apply** — it retries your saved stack and **stops when VM is RUNNING** (later runs exit in seconds, no duplicate VMs).
+
+### 1. Create OCI API key (one-time, for GitHub only)
+
+Console → **Identity → Users** → pick your admin user (or create `musica-tutor-deploy`):
+
+1. **API Keys → Add API Key** → Download `.pem` (keep safe)
+2. Note **OCID** (user), **Fingerprint**, **Tenancy OCID** (Profile menu)
+3. Region: `ap-singapore-1`
+
+Policy (if using a dedicated user in group `musica-tutor-github`):
+
+```
+Allow group musica-tutor-github to manage all-resources in compartment musica-tutor-ai-prod
+Allow group musica-tutor-github to read stacks in tenancy
+```
+
+### 2. GitHub Secrets for OCI API
+
+**Settings → Secrets and variables → Actions → Secrets**
+
+| Secret | Value |
+|--------|-------|
+| `OCI_TENANCY_OCID` | Tenancy OCID (Profile → Tenancy) |
+| `OCI_USER_OCID` | User OCID |
+| `OCI_FINGERPRINT` | From API key creation |
+| `OCI_API_PRIVATE_KEY` | Full `.pem` file contents |
+| `OCI_REGION` | `ap-singapore-1` |
+| `OCI_STACK_ID` | `ocid1.ormstack.oc1.ap-singapore-1.amaaaaaaso7lw4iadqqwc7iggetnh6sj6jb5q6kojs6sim2xe7yili6xtlhq` |
+
+Optional variable: `ORACLE_VM_NAME` = `musica-tutor-vm` (default)
+
+### 3. Run / schedule
+
+| Trigger | Behavior |
+|---------|----------|
+| **Every 30 min** (cron) | Up to 3 apply attempts per run |
+| **Manual** | Actions → **Oracle Stack Apply** → Run (default 20 attempts) |
+
+When VM exists → workflow prints IP and exits; **disable the workflow** in Actions when done to save minutes.
+
+### 4. After VM is up
+
+Same as manual path: bootstrap on VM, then add **SSH secrets** below for **Deploy Oracle**.
+
+---
+
+## One-time: GitHub repository setup (deploy app)
 
 ### 1. Environment (recommended)
 
@@ -140,6 +255,7 @@ Optional: add required reviewers before deploy.
 | Health check fails in workflow | Open port 80 on Oracle Security List |
 | Build slow / timeout | Normal first build (~10–15 min); workflow timeout is 25m |
 | Deploy skipped | CI must pass on `main`; check workflow_run conclusion |
+| `Out of capacity` for A1 | Enable **Oracle Stack Apply** workflow + OCI API secrets |
 
 ## Manual deploy (without GitHub)
 
