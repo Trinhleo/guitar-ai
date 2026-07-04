@@ -5,14 +5,14 @@ name: Oracle Stack Apply
 
 on:
   schedule:
-    # Every 30 minutes — one short retry burst per tick until VM exists
+    # Every 30 minutes — retries until VM exists (or job timeout)
     - cron: "*/30 * * * *"
   workflow_dispatch:
     inputs:
       max_attempts:
-        description: Max apply attempts this run (0 = until success)
+        description: Max apply attempts this run (0 = unlimited until success)
         required: false
-        default: "20"
+        default: "0"
       interval_sec:
         description: Seconds between retries on out-of-capacity
         required: false
@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     # Same environment as Deploy Oracle — secrets may live under Environment → production
     environment: production
-    timeout-minutes: 45
+    timeout-minutes: 360
     steps:
       - name: Validate required secrets
         run: |
@@ -149,7 +149,11 @@ jobs:
 
           echo "Stack: ${OCI_STACK_ID}"
           echo "VM name: ${VM_NAME}"
-          echo "Max attempts this run: ${MAX}"
+          if [[ "$MAX" == "0" ]]; then
+            echo "Max attempts this run: unlimited (until success or workflow timeout)"
+          else
+            echo "Max attempts this run: ${MAX}"
+          fi
           echo "Interval: ${INTERVAL}s"
 
           chmod +x scripts/oracle-stack-apply-retry.sh
@@ -161,7 +165,7 @@ jobs:
         env:
           OCI_STACK_ID: ${{ secrets.OCI_STACK_ID || vars.OCI_STACK_ID }}
           ORACLE_VM_NAME: ${{ vars.ORACLE_VM_NAME }}
-          MAX_ATTEMPTS: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.max_attempts || '3' }}
+          MAX_ATTEMPTS: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.max_attempts || '0' }}
           INTERVAL_SEC: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.interval_sec || '90' }}
 
       - name: Hint after success
