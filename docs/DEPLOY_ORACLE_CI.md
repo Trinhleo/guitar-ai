@@ -23,7 +23,29 @@ git pull → docker compose up --build → /health OK
 
 ### 1. Create VM
 
-#### Option A — Auto retry (recommended when UI shows "Out of capacity")
+#### Option A — Saved stack (recommended if you clicked "Save stack")
+
+If the Console showed **Out of capacity** and you saved a stack, use **Cloud Shell**:
+
+```bash
+git clone -b cursor/oracle-vm-retry-6dcd https://github.com/Trinhleo/guitar-ai.git ~/guitar-ai
+cd ~/guitar-ai
+chmod +x scripts/oracle-stack-apply-retry.sh
+
+./scripts/oracle-stack-apply-retry.sh \
+  --stack-id ocid1.ormstack.oc1.ap-singapore-1.amaaaaaaso7lw4iadqqwc7iggetnh6sj6jb5q6kojs6sim2xe7yili6xtlhq \
+  --interval 90
+```
+
+Behavior:
+
+- Retries **Apply stack** every 90s when AD is full
+- **Stops immediately** when apply succeeds or VM is already RUNNING (no spam)
+- Safe to run again later — skips if VM exists
+
+Requirements: **Oracle Cloud Shell** only (OCI CLI already logged in). No extra secrets.
+
+#### Option B — Direct CLI launch (no saved stack)
 
 Use **Oracle Cloud Shell** (Console → Cloud Shell icon). OCI CLI is pre-authenticated.
 
@@ -65,7 +87,7 @@ Options:
 | `--fallback-micro` | Try E2.1.Micro (1 GB) if A1 never succeeds |
 | `--dry-run` | Print plan without creating resources |
 
-#### Option B — Oracle Console (manual)
+#### Option C — Oracle Console (manual)
 
 - Shape: **Ampere A1** (Always Free), Ubuntu 22.04+
 - Region: home region (e.g. Singapore)
