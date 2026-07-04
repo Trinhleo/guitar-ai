@@ -78,3 +78,9 @@ Deploy Flutter web separately (e.g. Firebase Hosting, Cloudflare Pages, or the `
 make test
 make e2e-test
 ```
+
+## Oracle CI/CD (GitHub Actions)
+
+Auto-deploy to Oracle VM after CI passes on `main`.
+
+→ **[DEPLOY_ORACLE_CI.md](./DEPLOY_ORACLE_CI.md)**

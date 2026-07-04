@@ -173,6 +173,8 @@ make e2e-test
 
 See [docs/DEPLOY.md](docs/DEPLOY.md) for production deployment (Docker Compose prod, Fly.io).
 
+For **Oracle VPS CI/CD from GitHub Actions**, see [docs/DEPLOY_ORACLE_CI.md](docs/DEPLOY_ORACLE_CI.md).
+
 ---
 
 ## 🗄️ Database Schema
@@ -455,6 +457,7 @@ Contributions are welcome! Here's how to help:
 
 - [API Specification](docs/API_SPEC.md) - REST + WebSocket reference
 - [Deploy Guide](docs/DEPLOY.md) - Production deployment
+- [Oracle CI/CD](docs/DEPLOY_ORACLE_CI.md) - GitHub Actions → Oracle VM
 - [Sprint Backlog](docs/SPRINT_BACKLOG.md) - Kanban / issue tracking
 - [Flutter Architecture](docs/FLUTTER_ARCHITECTURE.md) - Frontend monorepo layout
 
