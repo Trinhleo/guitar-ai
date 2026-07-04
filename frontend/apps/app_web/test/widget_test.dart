@@ -53,6 +53,34 @@ void main() {
       api.token = 'abc123';
       expect(api.token, 'abc123');
     });
+
+    test('resolves primary and fallback base URLs', () {
+      final api = ApiClient(
+        baseUrl: 'https://primary.example.com',
+        fallbackBaseUrls: ['https://backup.example.com'],
+      );
+      expect(api.baseUrls, [
+        'https://primary.example.com',
+        'https://backup.example.com',
+      ]);
+    });
+  });
+
+  group('ApiEndpoints', () {
+    test('parses comma-separated fallback list', () {
+      expect(
+        ApiEndpoints.parseFallbackList('https://a.com, https://b.com'),
+        ['https://a.com', 'https://b.com'],
+      );
+    });
+
+    test('deduplicates candidates', () {
+      final endpoints = ApiEndpoints(
+        primary: 'https://a.com/',
+        fallbacks: ['https://a.com', 'https://b.com'],
+      );
+      expect(endpoints.candidates, ['https://a.com', 'https://b.com']);
+    });
   });
 
   group('PracticeResults', () {
