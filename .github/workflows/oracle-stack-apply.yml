@@ -106,9 +106,8 @@ jobs:
           if [[ "$pem_lines" -lt 3 ]]; then
             # GitHub secrets often collapse PEM to one line — try restoring newlines
             if grep -q 'BEGIN.*PRIVATE KEY' "$HOME/.oci/oci_api_key.pem"; then
-              sed 's/-----BEGIN /\
------BEGIN /g; s/-----END /\
------END /g; s/ /\n/g' "$HOME/.oci/oci_api_key.pem" > "$HOME/.oci/oci_api_key.pem.tmp" || true
+              sed $'s/-----BEGIN /\\n-----BEGIN /g;s/-----END /\\n-----END /g;s/ /\\n/g' \
+                "$HOME/.oci/oci_api_key.pem" > "$HOME/.oci/oci_api_key.pem.tmp" || true
               if [[ $(wc -l < "$HOME/.oci/oci_api_key.pem.tmp") -ge 3 ]]; then
                 mv "$HOME/.oci/oci_api_key.pem.tmp" "$HOME/.oci/oci_api_key.pem"
                 chmod 600 "$HOME/.oci/oci_api_key.pem"
