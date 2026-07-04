@@ -12,20 +12,31 @@ class ProgressScreen extends StatefulWidget {
 }
 
 class _ProgressScreenState extends State<ProgressScreen> {
-  late Future<UserProgress> _progressFuture;
+  late Future<({UserProgress progress, PracticeInsightsResponse insights})> _dataFuture;
 
   @override
   void initState() {
     super.initState();
-    _progressFuture = widget.api.getProgress();
+    _dataFuture = _fetchData();
+  }
+
+  Future<({UserProgress progress, PracticeInsightsResponse insights})> _fetchData() async {
+    final results = await Future.wait([
+      widget.api.getProgress(),
+      widget.api.getPracticeInsights(),
+    ]);
+    return (
+      progress: results[0] as UserProgress,
+      insights: results[1] as PracticeInsightsResponse,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Your progress')),
-      body: FutureBuilder<UserProgress>(
-        future: _progressFuture,
+      body: FutureBuilder<({UserProgress progress, PracticeInsightsResponse insights})>(
+        future: _dataFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -34,7 +45,8 @@ class _ProgressScreenState extends State<ProgressScreen> {
             return Center(child: Text('Error: ${snapshot.error}'));
           }
 
-          final progress = snapshot.data!;
+          final progress = snapshot.data!.progress;
+          final insights = snapshot.data!.insights;
           final pitchTrend = progress.trends
               .where((point) => point.pitchAccuracy != null)
               .map((point) => point.pitchAccuracy!)
@@ -47,6 +59,48 @@ class _ProgressScreenState extends State<ProgressScreen> {
           return ListView(
             padding: const EdgeInsets.all(24),
             children: [
+              Text(
+                'Practice insights',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  _StatCard(
+                    label: 'Streak',
+                    value: '${insights.practiceStreak} days',
+                  ),
+                  _StatCard(
+                    label: 'This week',
+                    value: '${insights.sessionsThisWeek}',
+                  ),
+                  if (insights.weakArea != null)
+                    _StatCard(
+                      label: 'Focus area',
+                      value: insights.weakArea!,
+                    ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              ...insights.insights.map(
+                (insight) => Card(
+                  child: ListTile(
+                    leading: Icon(
+                      insight.severity == 'warning'
+                          ? Icons.warning_amber
+                          : Icons.lightbulb_outline,
+                      color: insight.severity == 'warning'
+                          ? Colors.orange
+                          : Theme.of(context).colorScheme.primary,
+                    ),
+                    title: Text(insight.message),
+                    subtitle: Text(insight.category),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 32),
               Text(
                 'Overview',
                 style: Theme.of(context).textTheme.titleLarge,

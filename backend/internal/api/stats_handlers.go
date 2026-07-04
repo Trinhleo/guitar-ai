@@ -67,3 +67,43 @@ func (h *Handler) GetAchievements(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, map[string]any{"achievements": achievements})
 }
+
+func (h *Handler) GetLeaderboard(w http.ResponseWriter, r *http.Request) {
+	userID, err := auth.UserIDFromRequest(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	limit := 10
+	if value := r.URL.Query().Get("limit"); value != "" {
+		if parsed, err := strconv.Atoi(value); err == nil {
+			limit = parsed
+		}
+	}
+	instrument := r.URL.Query().Get("instrument")
+
+	leaderboard, err := h.Store.GetLeaderboard(r.Context(), userID, instrument, limit)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to get leaderboard")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, leaderboard)
+}
+
+func (h *Handler) GetPracticeInsights(w http.ResponseWriter, r *http.Request) {
+	userID, err := auth.UserIDFromRequest(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	insights, err := h.Store.GetPracticeInsights(r.Context(), userID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to get practice insights")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, insights)
+}

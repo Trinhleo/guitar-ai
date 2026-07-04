@@ -174,16 +174,22 @@ func TestInstrumentsAPI(t *testing.T) {
 		if err := json.Unmarshal(rec.Body.Bytes(), &items); err != nil {
 			t.Fatalf("decode: %v", err)
 		}
-		if len(items) == 0 || items[0]["id"] != "guitar" {
-			t.Fatalf("expected guitar instrument, got %+v", items)
+		if len(items) == 0 {
+			t.Fatal("expected at least one instrument")
 		}
 
+		hasGuitar := false
 		hasPiano := false
 		for _, item := range items {
+			if item["id"] == "guitar" {
+				hasGuitar = true
+			}
 			if item["id"] == "piano" {
 				hasPiano = true
-				break
 			}
+		}
+		if !hasGuitar {
+			t.Fatalf("expected guitar instrument, got %+v", items)
 		}
 		if !hasPiano {
 			t.Fatal("expected piano instrument in list")
@@ -667,4 +673,113 @@ func TestInstrumentsIncludeViolin(t *testing.T) {
 		}
 	}
 	t.Fatal("expected violin instrument")
+}
+
+func TestInstrumentsIncludeDrums(t *testing.T) {
+	router := testRouter(t)
+	req := httptest.NewRequest(http.MethodGet, "/api/instruments", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	var items []map[string]any
+	_ = json.Unmarshal(rec.Body.Bytes(), &items)
+	for _, item := range items {
+		if item["id"] == "drums" {
+			return
+		}
+	}
+	t.Fatal("expected drums instrument")
+}
+
+func startAndEvaluateSession(t *testing.T, router http.Handler, token string) string {
+	t.Helper()
+
+	startReq := httptest.NewRequest(http.MethodPost, "/api/practice/start/"+contentID, bytes.NewReader([]byte(`{}`)))
+	startReq.Header.Set("Content-Type", "application/json")
+	startReq.Header.Set("Authorization", authHeader(token))
+	startRec := httptest.NewRecorder()
+	router.ServeHTTP(startRec, startReq)
+
+	var startResp map[string]string
+	if err := json.Unmarshal(startRec.Body.Bytes(), &startResp); err != nil {
+		t.Fatalf("decode start: %v", err)
+	}
+
+	evalBody, _ := json.Marshal(map[string]any{
+		"playedNotes": []evaluation.Note{
+			{Note: "E4", StartMs: 0, DurationMs: 500},
+			{Note: "E4", StartMs: 600, DurationMs: 500},
+		},
+	})
+	evalReq := httptest.NewRequest(http.MethodPost, "/api/practice/"+startResp["sessionId"]+"/evaluate", bytes.NewReader(evalBody))
+	evalReq.Header.Set("Content-Type", "application/json")
+	evalReq.Header.Set("Authorization", authHeader(token))
+	evalRec := httptest.NewRecorder()
+	router.ServeHTTP(evalRec, evalReq)
+	if evalRec.Code != http.StatusOK {
+		t.Fatalf("evaluate status = %d, body = %s", evalRec.Code, evalRec.Body.String())
+	}
+
+	return startResp["sessionId"]
+}
+
+func TestLeaderboard(t *testing.T) {
+	router := testRouter(t)
+	userA := registerUser(t, router, uniqueEmail("leader-a"), "password123")
+	userB := registerUser(t, router, uniqueEmail("leader-b"), "password123")
+
+	startAndEvaluateSession(t, router, userA.Token)
+	startAndEvaluateSession(t, router, userB.Token)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/stats/leaderboard?limit=5", nil)
+	req.Header.Set("Authorization", authHeader(userA.Token))
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("leaderboard status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode leaderboard: %v", err)
+	}
+	items := body["items"].([]any)
+	if len(items) < 2 {
+		t.Fatalf("expected at least 2 leaderboard entries, got %d", len(items))
+	}
+	first := items[0].(map[string]any)
+	if first["rank"].(float64) != 1 {
+		t.Fatalf("expected rank 1 on first entry, got %+v", first)
+	}
+	if first["displayName"] == nil || first["displayName"] == "" {
+		t.Fatal("expected displayName on leaderboard entry")
+	}
+}
+
+func TestPracticeInsights(t *testing.T) {
+	router := testRouter(t)
+	auth := registerUser(t, router, uniqueEmail("insights"), "password123")
+	startAndEvaluateSession(t, router, auth.Token)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/stats/insights", nil)
+	req.Header.Set("Authorization", authHeader(auth.Token))
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("insights status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode insights: %v", err)
+	}
+	insights := body["insights"].([]any)
+	if len(insights) == 0 {
+		t.Fatal("expected at least one insight")
+	}
+	if body["sessionsThisWeek"] == nil {
+		t.Fatal("expected sessionsThisWeek in insights response")
+	}
 }

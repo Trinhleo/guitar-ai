@@ -65,4 +65,16 @@ test('full practice API flow', async ({ request }) => {
   const detail = await results.json();
   expect(detail.contentTitle).toBeTruthy();
   expect(detail.playedNotes.length).toBeGreaterThan(0);
+
+  const insights = await request.get(`${baseURL}/api/stats/insights`, { headers });
+  expect(insights.ok()).toBeTruthy();
+  const insightsBody = await insights.json();
+  expect(Array.isArray(insightsBody.insights)).toBeTruthy();
+  expect(insightsBody.insights.length).toBeGreaterThan(0);
+
+  const leaderboard = await request.get(`${baseURL}/api/stats/leaderboard`, { headers });
+  expect(leaderboard.ok()).toBeTruthy();
+  const leaderboardBody = await leaderboard.json();
+  expect(Array.isArray(leaderboardBody.items)).toBeTruthy();
+  expect(leaderboardBody.items.length).toBeGreaterThan(0);
 });

@@ -52,6 +52,8 @@ func NewRouter(store *service.Store, cfg config.Config) http.Handler {
 			r.Use(AuthMiddleware(authService))
 			r.Get("/progress", handler.GetProgress)
 			r.Get("/achievements", handler.GetAchievements)
+			r.Get("/leaderboard", handler.GetLeaderboard)
+			r.Get("/insights", handler.GetPracticeInsights)
 		})
 	})
 

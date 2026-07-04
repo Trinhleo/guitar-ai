@@ -357,3 +357,116 @@ class Recommendation {
     );
   }
 }
+
+class LeaderboardEntry {
+  LeaderboardEntry({
+    required this.rank,
+    required this.userId,
+    required this.displayName,
+    required this.averageScore,
+    required this.bestScore,
+    required this.sessionCount,
+    required this.isCurrentUser,
+  });
+
+  final int rank;
+  final String userId;
+  final String displayName;
+  final double averageScore;
+  final double bestScore;
+  final int sessionCount;
+  final bool isCurrentUser;
+
+  factory LeaderboardEntry.fromJson(Map<String, dynamic> json) {
+    return LeaderboardEntry(
+      rank: json['rank'] as int? ?? 0,
+      userId: json['userId'] as String? ?? '',
+      displayName: json['displayName'] as String? ?? '',
+      averageScore: (json['averageScore'] as num?)?.toDouble() ?? 0,
+      bestScore: (json['bestScore'] as num?)?.toDouble() ?? 0,
+      sessionCount: json['sessionCount'] as int? ?? 0,
+      isCurrentUser: json['isCurrentUser'] as bool? ?? false,
+    );
+  }
+}
+
+class LeaderboardResponse {
+  LeaderboardResponse({
+    required this.items,
+    this.instrument,
+    this.currentUserRank,
+  });
+
+  final List<LeaderboardEntry> items;
+  final String? instrument;
+  final int? currentUserRank;
+
+  factory LeaderboardResponse.fromJson(Map<String, dynamic> json) {
+    final items = (json['items'] as List<dynamic>? ?? [])
+        .map((item) => LeaderboardEntry.fromJson(item as Map<String, dynamic>))
+        .toList();
+    return LeaderboardResponse(
+      items: items,
+      instrument: json['instrument'] as String?,
+      currentUserRank: json['currentUserRank'] as int?,
+    );
+  }
+}
+
+class PracticeInsight {
+  PracticeInsight({
+    required this.category,
+    required this.message,
+    required this.severity,
+  });
+
+  final String category;
+  final String message;
+  final String severity;
+
+  factory PracticeInsight.fromJson(Map<String, dynamic> json) {
+    return PracticeInsight(
+      category: json['category'] as String? ?? '',
+      message: json['message'] as String? ?? '',
+      severity: json['severity'] as String? ?? 'info',
+    );
+  }
+}
+
+class PracticeInsightsResponse {
+  PracticeInsightsResponse({
+    this.weakArea,
+    this.pitchAverage,
+    this.timingAverage,
+    required this.practiceStreak,
+    required this.sessionsThisWeek,
+    this.scoreImprovement,
+    this.topInstrument,
+    required this.insights,
+  });
+
+  final String? weakArea;
+  final double? pitchAverage;
+  final double? timingAverage;
+  final int practiceStreak;
+  final int sessionsThisWeek;
+  final double? scoreImprovement;
+  final String? topInstrument;
+  final List<PracticeInsight> insights;
+
+  factory PracticeInsightsResponse.fromJson(Map<String, dynamic> json) {
+    final insights = (json['insights'] as List<dynamic>? ?? [])
+        .map((item) => PracticeInsight.fromJson(item as Map<String, dynamic>))
+        .toList();
+    return PracticeInsightsResponse(
+      weakArea: json['weakArea'] as String?,
+      pitchAverage: (json['pitchAverage'] as num?)?.toDouble(),
+      timingAverage: (json['timingAverage'] as num?)?.toDouble(),
+      practiceStreak: json['practiceStreak'] as int? ?? 0,
+      sessionsThisWeek: json['sessionsThisWeek'] as int? ?? 0,
+      scoreImprovement: (json['scoreImprovement'] as num?)?.toDouble(),
+      topInstrument: json['topInstrument'] as String?,
+      insights: insights,
+    );
+  }
+}

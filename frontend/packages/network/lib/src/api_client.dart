@@ -202,6 +202,35 @@ class ApiClient {
         .toList();
   }
 
+  Future<LeaderboardResponse> getLeaderboard({
+    String? instrument,
+    int limit = 10,
+  }) async {
+    final query = <String, String>{'limit': '$limit'};
+    if (instrument != null && instrument.isNotEmpty) {
+      query['instrument'] = instrument;
+    }
+    final uri = Uri.parse('$baseUrl/api/stats/leaderboard').replace(
+      queryParameters: query,
+    );
+    final response = await http.get(uri, headers: _jsonHeaders);
+    _ensureSuccess(response);
+    return LeaderboardResponse.fromJson(
+      jsonDecode(response.body) as Map<String, dynamic>,
+    );
+  }
+
+  Future<PracticeInsightsResponse> getPracticeInsights() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/stats/insights'),
+      headers: _jsonHeaders,
+    );
+    _ensureSuccess(response);
+    return PracticeInsightsResponse.fromJson(
+      jsonDecode(response.body) as Map<String, dynamic>,
+    );
+  }
+
   Future<Map<String, dynamic>> uploadPracticeAudio({
     required String sessionId,
     required List<int> wavBytes,
