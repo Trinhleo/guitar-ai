@@ -185,13 +185,19 @@ apply_stack_once() {
     return 0
   fi
 
-  local job_id
-  job_id="$(oci resource-manager job create \
+  local job_id err_file
+  err_file="$(mktemp)"
+  if ! job_id="$(oci resource-manager job create-apply-job \
     --stack-id "$STACK_ID" \
-    --operation APPLY \
     --execution-plan-strategy AUTO_APPROVED \
     --query 'data.id' \
-    --raw-output)"
+    --raw-output 2>"$err_file")"; then
+    warn "Apply job create failed:"
+    sed 's/^/  /' "$err_file" >&2 || true
+    rm -f "$err_file"
+    return 1
+  fi
+  rm -f "$err_file"
 
   log "Apply job created: ${job_id}"
 
