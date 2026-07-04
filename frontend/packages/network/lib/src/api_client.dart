@@ -100,7 +100,7 @@ class ApiClient {
     );
   }
 
-  Future<List<MusicalContent>> getRecommendations({
+  Future<List<Recommendation>> getRecommendations({
     String instrument = 'guitar',
     int limit = 3,
   }) async {
@@ -115,7 +115,7 @@ class ApiClient {
     final body = jsonDecode(response.body) as Map<String, dynamic>;
     final items = body['items'] as List<dynamic>? ?? [];
     return items
-        .map((item) => MusicalContent.fromJson(item as Map<String, dynamic>))
+        .map((item) => Recommendation.fromJson(item as Map<String, dynamic>))
         .toList();
   }
 

@@ -23,6 +23,10 @@ type Store struct {
 	Pool *pgxpool.Pool
 }
 
+func (s *Store) Ping(ctx context.Context) error {
+	return s.Pool.Ping(ctx)
+}
+
 func (s *Store) ListInstruments(ctx context.Context) ([]models.Instrument, error) {
 	rows, err := s.Pool.Query(ctx, `SELECT id, name, family, frequency_range_min, frequency_range_max, note_range_low, note_range_high, tuning, techniques, config FROM instruments ORDER BY name`)
 	if err != nil {
@@ -239,7 +243,7 @@ func derefFloat(value *float64) float64 {
 	return *value
 }
 
-func (s *Store) GetRecommendations(ctx context.Context, userID, instrumentID string, limit int) ([]models.MusicalContent, error) {
+func (s *Store) GetRecommendations(ctx context.Context, userID, instrumentID string, limit int) (models.RecommendationResponse, error) {
 	if limit <= 0 {
 		limit = 3
 	}
@@ -247,41 +251,103 @@ func (s *Store) GetRecommendations(ctx context.Context, userID, instrumentID str
 		instrumentID = "guitar"
 	}
 
+	var avgScore *float64
+	_ = s.Pool.QueryRow(ctx, `
+		SELECT AVG(overall_score) FROM practice_sessions
+		WHERE user_id = $1 AND overall_score IS NOT NULL`, userID).Scan(&avgScore)
+
+	minDiff, maxDiff := targetDifficultyRange(avgScore)
+
 	rows, err := s.Pool.Query(ctx, `
 		SELECT mc.id, mc.type, mc.title, mc.instrument_id, mc.difficulty_level, mc.duration_seconds, mc.bpm, mc.key, mc.expected_notes, mc.created_at
 		FROM musical_content mc
 		WHERE mc.instrument_id = $1
+		  AND mc.difficulty_level BETWEEN $2 AND $3
 		  AND mc.id NOT IN (
 		    SELECT content_id FROM practice_sessions
-		    WHERE user_id = $2 AND overall_score IS NOT NULL
+		    WHERE user_id = $4 AND overall_score IS NOT NULL
 		  )
 		ORDER BY mc.difficulty_level ASC, mc.title ASC
-		LIMIT $3`, instrumentID, userID, limit)
+		LIMIT $5`, instrumentID, minDiff, maxDiff, userID, limit)
 	if err != nil {
-		return nil, err
+		return models.RecommendationResponse{}, err
 	}
 	defer rows.Close()
 
 	items, err := scanContentRows(rows)
 	if err != nil {
-		return nil, err
+		return models.RecommendationResponse{}, err
 	}
+
+	if len(items) == 0 {
+		fallbackRows, err := s.Pool.Query(ctx, `
+			SELECT mc.id, mc.type, mc.title, mc.instrument_id, mc.difficulty_level, mc.duration_seconds, mc.bpm, mc.key, mc.expected_notes, mc.created_at
+			FROM musical_content mc
+			WHERE mc.instrument_id = $1
+			ORDER BY mc.difficulty_level ASC, mc.title ASC
+			LIMIT $2`, instrumentID, limit)
+		if err != nil {
+			return models.RecommendationResponse{}, err
+		}
+		defer fallbackRows.Close()
+		items, err = scanContentRows(fallbackRows)
+		if err != nil {
+			return models.RecommendationResponse{}, err
+		}
+	}
+
+	targetDiff := minDiff
 	if len(items) > 0 {
-		return items, nil
+		targetDiff = items[0].DifficultyLevel
 	}
 
-	fallbackRows, err := s.Pool.Query(ctx, `
-		SELECT mc.id, mc.type, mc.title, mc.instrument_id, mc.difficulty_level, mc.duration_seconds, mc.bpm, mc.key, mc.expected_notes, mc.created_at
-		FROM musical_content mc
-		WHERE mc.instrument_id = $1
-		ORDER BY mc.difficulty_level DESC, mc.title ASC
-		LIMIT $2`, instrumentID, limit)
-	if err != nil {
-		return nil, err
+	recItems := make([]models.RecommendationItem, len(items))
+	for i, item := range items {
+		recItems[i] = models.RecommendationItem{
+			Content:          item,
+			Reason:           recommendationReason(avgScore, item.DifficultyLevel),
+			TargetDifficulty: item.DifficultyLevel,
+		}
 	}
-	defer fallbackRows.Close()
 
-	return scanContentRows(fallbackRows)
+	return models.RecommendationResponse{
+		Items:            recItems,
+		TargetDifficulty: targetDiff,
+		AverageScore:     avgScore,
+	}, nil
+}
+
+func targetDifficultyRange(avgScore *float64) (int, int) {
+	if avgScore == nil {
+		return 1, 2
+	}
+	avg := *avgScore
+	switch {
+	case avg < 70:
+		return 1, 2
+	case avg < 85:
+		return 2, 3
+	default:
+		return 3, 5
+	}
+}
+
+func recommendationReason(avgScore *float64, difficulty int) string {
+	if avgScore == nil {
+		return "Great starting point for your first sessions"
+	}
+	avg := *avgScore
+	minDiff, maxDiff := targetDifficultyRange(avgScore)
+	switch {
+	case avg < 70 && difficulty <= 2:
+		return "Build confidence with easier exercises"
+	case avg >= 85 && difficulty >= 3:
+		return "Challenge yourself — you're ready for harder material"
+	case difficulty >= minDiff && difficulty <= maxDiff:
+		return "Well matched to your current level"
+	default:
+		return "Recommended next step at your level"
+	}
 }
 
 func scanContentRows(rows pgx.Rows) ([]models.MusicalContent, error) {

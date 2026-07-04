@@ -1,0 +1,47 @@
+# Production stack — set secrets via .env.prod before running:
+#   JWT_SECRET=<strong-random-secret>
+#   POSTGRES_PASSWORD=<strong-password>
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: guitar
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: guitar_ai
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U guitar -d guitar_ai"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ./backend
+    environment:
+      DATABASE_URL: postgresql://guitar:${POSTGRES_PASSWORD}@postgres:5432/guitar_ai
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
+      PORT: "5000"
+      MIGRATIONS_DIR: /app/migrations
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: sh -c "./server migrate && ./server"
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        API_BASE_URL: ""
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  pgdata:

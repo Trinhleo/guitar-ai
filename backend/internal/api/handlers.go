@@ -18,8 +18,18 @@ type Handler struct {
 	Auth  *auth.Service
 }
 
-func (h *Handler) Health(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+func (h *Handler) Health(w http.ResponseWriter, r *http.Request) {
+	if err := h.Store.Ping(r.Context()); err != nil {
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{
+			"status": "degraded",
+			"db":     "down",
+		})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{
+		"status": "ok",
+		"db":     "ok",
+	})
 }
 
 func (h *Handler) ListInstruments(w http.ResponseWriter, r *http.Request) {
@@ -95,7 +105,7 @@ func (h *Handler) ListRecommendations(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to get recommendations")
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"items": items})
+	writeJSON(w, http.StatusOK, items)
 }
 
 func (h *Handler) StartPractice(w http.ResponseWriter, r *http.Request) {

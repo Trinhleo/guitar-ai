@@ -133,3 +133,15 @@ type Achievement struct {
 	Description string `json:"description"`
 	Unlocked    bool   `json:"unlocked"`
 }
+
+type RecommendationItem struct {
+	Content          MusicalContent `json:"content"`
+	Reason           string         `json:"reason"`
+	TargetDifficulty int            `json:"targetDifficulty"`
+}
+
+type RecommendationResponse struct {
+	Items            []RecommendationItem `json:"items"`
+	TargetDifficulty int                  `json:"targetDifficulty"`
+	AverageScore     *float64             `json:"averageScore,omitempty"`
+}

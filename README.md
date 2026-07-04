@@ -171,6 +171,8 @@ docker compose up -d --build
 make e2e-test
 ```
 
+See [docs/DEPLOY.md](docs/DEPLOY.md) for production deployment (Docker Compose prod, Fly.io).
+
 ---
 
 ## 🗄️ Database Schema

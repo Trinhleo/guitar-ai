@@ -92,6 +92,9 @@ func TestHealth(t *testing.T) {
 	if body["status"] != "ok" {
 		t.Fatalf("status = %q, want ok", body["status"])
 	}
+	if body["db"] != "ok" {
+		t.Fatalf("db = %q, want ok", body["db"])
+	}
 }
 
 func TestAuthRegisterAndLogin(t *testing.T) {
@@ -638,4 +641,30 @@ func TestContentRecommendations(t *testing.T) {
 	if len(items) == 0 {
 		t.Fatal("expected recommendation items")
 	}
+	if body["targetDifficulty"] == nil {
+		t.Fatal("expected targetDifficulty in recommendations")
+	}
+	first := items[0].(map[string]any)
+	if first["reason"] == nil || first["reason"] == "" {
+		t.Fatal("expected reason on recommendation item")
+	}
+	if first["content"] == nil {
+		t.Fatal("expected content on recommendation item")
+	}
+}
+
+func TestInstrumentsIncludeViolin(t *testing.T) {
+	router := testRouter(t)
+	req := httptest.NewRequest(http.MethodGet, "/api/instruments", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	var items []map[string]any
+	_ = json.Unmarshal(rec.Body.Bytes(), &items)
+	for _, item := range items {
+		if item["id"] == "violin" {
+			return
+		}
+	}
+	t.Fatal("expected violin instrument")
 }
