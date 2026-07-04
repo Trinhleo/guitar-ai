@@ -1,0 +1,74 @@
+name: Feature
+description: New feature or enhancement
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for new features. Link related PRs and epics when applicable.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Backend (Go)
+        - Frontend (Flutter)
+        - Infrastructure
+        - Documentation
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - P0 — Must have this sprint
+        - P1 — Should have this sprint
+        - P2 — Nice to have / backlog
+    validations:
+      required: true
+
+  - type: dropdown
+    id: sprint
+    attributes:
+      label: Sprint
+      options:
+        - Sprint 1 — Core UX
+        - Sprint 2 — Real-time & Audio
+        - Backlog
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What should be built and why?
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: Checklist of done conditions
+      value: |
+        - [ ] 
+        - [ ] 
+    validations:
+      required: true
+
+  - type: textarea
+    id: technical
+    attributes:
+      label: Technical Notes
+      description: Files, APIs, dependencies, risks
+
+  - type: textarea
+    id: testing
+    attributes:
+      label: Testing Plan
+      description: How will this be verified?

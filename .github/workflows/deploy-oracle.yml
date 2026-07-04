@@ -1,0 +1,49 @@
+name: Deploy Oracle
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-oracle-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Deploy to Oracle VM via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.ORACLE_SSH_HOST }}
+          username: ${{ secrets.ORACLE_SSH_USER }}
+          key: ${{ secrets.ORACLE_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.ORACLE_SSH_PORT || 22 }}
+          command_timeout: 25m
+          script_stop: true
+          envs: ORACLE_APP_DIR
+          script: |
+            set -euo pipefail
+            APP_DIR="${ORACLE_APP_DIR:-/home/ubuntu/guitar-ai}"
+            export APP_DIR
+            cd "$APP_DIR"
+            chmod +x scripts/deploy-oracle-remote.sh
+            ./scripts/deploy-oracle-remote.sh
+        env:
+          ORACLE_APP_DIR: ${{ vars.ORACLE_APP_DIR }}
+
+      - name: Verify public health endpoint
+        if: success()
+        run: |
+          HOST="${{ secrets.ORACLE_PUBLIC_URL || secrets.ORACLE_SSH_HOST }}"
+          curl -sf "http://${HOST}/health"
+          echo
+          curl -sf "http://${HOST}/api/instruments" | head -c 200
+          echo

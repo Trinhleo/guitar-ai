@@ -1,0 +1,11 @@
+node_modules/
+.env
+coverage/
+dist/
+*.log
+.DS_Store
+backend/bin/
+backend/server
+**/.dart_tool/
+**/.packages
+**/build/

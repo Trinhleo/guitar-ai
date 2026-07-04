@@ -23,6 +23,7 @@ Build an intelligent music tutoring system that:
 - [Database Schema](#-database-schema)
 - [API Endpoints](#-api-endpoints)
 - [Implementation Roadmap](#-implementation-roadmap)
+- [Sprint Backlog (Kanban)](#-sprint-backlog-kanban)
 - [Contributing](#-contributing)
 
 ---
@@ -63,7 +64,7 @@ Build an intelligent music tutoring system that:
 └────────────────────────┬─────────────────────────────────┘
                          │
 ┌────────────────────────▼──────────────────────────────────┐
-│              Backend API (Node.js/Python)                │
+│              Backend API (Go + chi)                      │
 │  Lessons | Solos | Chords | Audio Processing | Eval     │
 └─┬────────────┬──────────────┬─────────────┬──────────────┬┘
   │            │              │             │              │
@@ -94,15 +95,13 @@ Build an intelligent music tutoring system that:
 
 | Layer | Technologies |
 |-------|--------------|
-| **Frontend** | React, TypeScript, Tailwind CSS, Web Audio API |
-| **Backend** | Node.js/Express or Python/FastAPI |
-| **Real-time** | WebSocket (Socket.io) |
-| **Audio Processing** | Librosa, Essentia, Web Audio API |
-| **Pitch Detection** | PYIN algorithm, FFT analysis |
-| **Database** | PostgreSQL (primary), Redis (cache) |
-| **Storage** | AWS S3 or Google Cloud Storage |
-| **ML/ML** | TensorFlow (optional) |
-| **Deployment** | Docker, Kubernetes, Railway/Render |
+| **Frontend** | Flutter (Web, iOS, Android), shared packages (`app_shared`, `network`, `shared_ui`) |
+| **Backend** | Go 1.25, chi router, pgx |
+| **Real-time** | WebSocket (gorilla/websocket) |
+| **Audio Processing** | Go WAV parser + autocorrelation pitch detection |
+| **Pitch Detection** | Autocorrelation with silence gate (server-side) |
+| **Database** | PostgreSQL |
+| **Deployment** | Docker Compose |
 | **API** | REST + WebSocket |
 
 ---
@@ -111,90 +110,22 @@ Build an intelligent music tutoring system that:
 
 ```
 guitar-ai/
-├── backend/
-│   ├── src/
-│   │   ├── api/
-│   │   │   ├── instruments.js
-│   │   │   ├── content.js
-│   │   │   ├── lessons.js
-│   │   │   ├── solos.js
-│   │   │   ├── chords.js
-│   │   │   ├── practice.js
-│   │   │   └── stats.js
-│   │   ├── services/
-│   │   │   ├── audioProcessor.js
-│   │   │   ├── pitchDetector.js
-│   │   │   ├── evaluationEngine.js
-│   │   │   ├── instrumentManager.js
-│   │   │   └── feedbackGenerator.js
-│   │   ├── models/
-│   │   │   ├── User.js
-│   │   │   ├── Instrument.js
-│   │   │   ├── MusicalContent.js
-│   │   │   ├── PracticeSession.js
-│   │   │   ├── PerformanceMetrics.js
-│   │   │   └── Achievement.js
-│   │   ├── middleware/
-│   │   │   ├── auth.js
-│   │   │   ├── errorHandler.js
-│   │   │   └── validation.js
-│   │   ├── websocket/
-│   │   │   └── feedbackHandler.js
-│   │   ├── config/
-│   │   │   ├── database.js
-│   │   │   └── instruments.js
-│   │   └── app.js
-│   ├── migrations/
-│   │   ├── 001_create_instruments.sql
-│   │   ├── 002_create_users.sql
-│   │   ├── 003_create_content.sql
-│   │   └── ...
-│   ├── package.json
-│   ├── .env.example
-│   └── Dockerfile
-│
-├── frontend/
-│   ├── src/
-│   │   ├── pages/
-│   │   │   ├── Dashboard.jsx
-│   │   │   ├── InstrumentSelector.jsx
-│   │   │   ├── Library.jsx
-│   │   │   ├── LessonPage.jsx
-│   │   │   ├── SoloPage.jsx
-│   │   │   ├── ChordPage.jsx
-│   │   │   ├── PracticeSession.jsx
-│   │   │   └── Results.jsx
-│   │   ├── components/
-│   │   │   ├── AudioRecorder.jsx
-│   │   │   ├── PitchVisualization.jsx
-│   │   │   ├── PerformanceChart.jsx
-│   │   │   ├── FeedbackPanel.jsx
-│   │   │   └── ProgressTracker.jsx
-│   │   ├── hooks/
-│   │   │   ├── useAudio.js
-│   │   │   ├── usePitchDetection.js
-│   │   │   └── usePractice.js
-│   │   ├── services/
-│   │   │   ├── api.js
-│   │   │   ├── websocket.js
-│   │   │   └── audioService.js
-│   │   ├── styles/
-│   │   ├── App.jsx
-│   │   └── index.jsx
-│   ├── package.json
-│   └── Dockerfile
-│
+├── backend/                    # Go REST API
+│   ├── cmd/server/             # Entrypoint + migrate command
+│   ├── internal/               # api, evaluation, service, config
+│   ├── migrations/             # SQL schema + seed data
+│   └── go.mod
+├── frontend/                   # Flutter monorepo (web + mobile)
+│   ├── apps/
+│   │   ├── app_web/            # Flutter Web app
+│   │   └── app_mobile/         # Flutter iOS + Android app
+│   └── packages/
+│       ├── app_shared/         # Shared screens + auth
+│       ├── network/            # API client (Go backend)
+│       └── shared_ui/          # Theme + shared widgets
 ├── docs/
-│   ├── ARCHITECTURE.md
-│   ├── API_SPEC.md
-│   ├── SETUP.md
-│   ├── DATABASE.md
-│   ├── INSTRUMENTS.md
-│   └── DEVELOPMENT.md
-│
 ├── docker-compose.yml
-├── .gitignore
-├── .env.example
+├── Makefile
 └── README.md
 ```
 
@@ -204,62 +135,45 @@ guitar-ai/
 
 ### Prerequisites
 
-- Node.js 16+ or Python 3.8+
-- PostgreSQL 12+
-- Docker (optional)
+- Go 1.25+
+- PostgreSQL 16+ (or Docker)
+- Flutter 3.16+ (for frontend)
 - Git
 
 ### Quick Start
 
-#### Option 1: Using Docker (Recommended)
+**1. Backend**
 
 ```bash
-# Clone the repository
-git clone https://github.com/Trinhleo/guitar-ai.git
-cd guitar-ai
-
-# Copy environment variables
 cp .env.example .env
-
-# Start with Docker Compose
-docker-compose up -d
-
-# Access the application
-# Frontend: http://localhost:3000
-# Backend: http://localhost:5000
+make docker-up    # Postgres + Go API (or: make migrate && make run)
+make test
 ```
 
-#### Option 2: Manual Setup
-
-**Backend Setup:**
+**2. Frontend (Flutter Web)**
 
 ```bash
-cd backend
-
-# Install dependencies
-npm install
-
-# Setup PostgreSQL database
-createdb guitar_ai
-
-# Run migrations
-npm run migrate
-
-# Start the backend server
-npm start
+make frontend-run
+# Open http://localhost:3000
 ```
 
-**Frontend Setup:**
+**3. Full stack (Docker — API + Postgres + Web)**
 
 ```bash
-cd frontend
-
-# Install dependencies
-npm install
-
-# Start the development server
-npm start
+docker compose up -d --build
+# Web UI: http://localhost:3000
+# API:    http://localhost:5000
 ```
+
+**4. E2E smoke tests (requires Postgres)**
+
+```bash
+make e2e-test
+```
+
+See [docs/DEPLOY.md](docs/DEPLOY.md) for production deployment (Docker Compose prod, Fly.io).
+
+For **Oracle VPS CI/CD from GitHub Actions**, see [docs/DEPLOY_ORACLE_CI.md](docs/DEPLOY_ORACLE_CI.md).
 
 ---
 
@@ -357,20 +271,29 @@ GET    /api/content/:contentId/instrument/:instrumentId
 
 ```
 POST   /api/practice/start/:contentId     -- Start practice session
-POST   /api/practice/:sessionId/record    -- Upload recorded audio
+POST   /api/practice/:sessionId/evaluate  -- Submit played notes for scoring
+POST   /api/practice/:sessionId/upload    -- Upload WAV for pitch detection + scoring
 GET    /api/practice/:sessionId/results   -- Get evaluation results
-GET    /api/practice/history              -- Get practice history
+GET    /api/practice/history              -- Get practice history (paginated)
 ```
 
 ### Statistics & Progress
 
 ```
-GET    /api/stats/progress                -- Overall progress
-GET    /api/stats/content/:contentId      -- Stats for specific content
-GET    /api/achievements                  -- User achievements
+GET    /api/stats/progress                -- Overall progress + trends
+GET    /api/stats/achievements            -- User achievement badges
+GET    /api/stats/leaderboard             -- Rankings by average score
+GET    /api/stats/insights                -- Personalized practice tips
+GET    /api/content/recommendations       -- Difficulty-aware content suggestions
 ```
 
-See [API_SPEC.md](docs/API_SPEC.md) for complete API documentation.
+### Real-time
+
+```
+GET    /ws/practice/:sessionId            -- WebSocket live feedback during practice
+```
+
+See [docs/API_SPEC.md](docs/API_SPEC.md) for complete API documentation.
 
 ---
 
@@ -404,45 +327,48 @@ See [API_SPEC.md](docs/API_SPEC.md) for complete API documentation.
 ## 🛣️ Implementation Roadmap
 
 ### Phase 1: MVP (Weeks 1-3)
-- [ ] Project setup & database schema
-- [ ] User authentication
-- [ ] Instrument management system
-- [ ] Basic audio recording
-- [ ] Pitch detection (Librosa)
-- [ ] Simple scoring algorithm
+- [x] Project setup & database schema
+- [x] User authentication
+- [x] Instrument management system
+- [x] Basic audio recording
+- [x] Pitch detection (Go autocorrelation)
+- [x] Simple scoring algorithm
 
 ### Phase 2: Core Features (Weeks 4-6)
-- [ ] Real-time pitch visualization
-- [ ] Detailed performance metrics
-- [ ] Practice history & dashboard
-- [ ] Technique-specific feedback
-- [ ] Multiple speed variations
-- [ ] WebSocket real-time feedback
+- [x] Real-time pitch visualization
+- [x] Detailed performance metrics
+- [x] Practice history & dashboard
+- [x] Technique hints (rule-based feedback)
+- [x] Multiple speed variations
+- [x] WebSocket real-time feedback
 
 ### Phase 3: Enhancement (Weeks 7-9)
-- [ ] Advanced AI insights
-- [ ] Achievements & gamification
-- [ ] Multiple instrument support refinement
+- [x] Practice insights API
+- [x] Achievements & gamification
+- [x] Multiple instrument support (guitar, piano, violin, drums)
 - [ ] Performance optimization
-- [ ] Mobile-responsive UI
+- [x] Mobile-responsive UI
 
 ### Phase 4: Scale & Polish (Weeks 10+)
-- [ ] Mobile app (React Native)
-- [ ] Advanced recommendation engine
-- [ ] Social features
-- [ ] Cloud deployment
+- [x] Mobile app (Flutter iOS/Android)
+- [x] Recommendation engine (difficulty-aware)
+- [x] Social features (leaderboard)
+- [x] Cloud deployment configs (Docker prod, Fly.io)
 - [ ] Analytics dashboard
 
 ---
 
 ## 🎸 Supported Instruments
 
-### Currently Planning
+### Currently Available
 
-- ✅ Guitar (Primary focus)
-- ⏳ Piano
-- ⏳ Violin
-- ⏳ Drums
+- ✅ Guitar
+- ✅ Piano
+- ✅ Violin
+- ✅ Drums
+
+### Planned
+
 - ⏳ Flute
 - ⏳ Trumpet
 - ⏳ Bass
@@ -450,14 +376,13 @@ See [API_SPEC.md](docs/API_SPEC.md) for complete API documentation.
 
 ### Extensibility
 
-The system is designed to be easily extensible. To add a new instrument:
+To add a new instrument:
 
-1. Add instrument config to `config/instruments.js`
-2. Create instrument-specific module in `services/instruments/`
-3. Implement technique detection methods
-4. Update evaluation engine with custom metrics
+1. Add a SQL migration under `backend/migrations/` with instrument config + seed content
+2. Tune `pitchToleranceCents` / `timingToleranceMs` in the instrument `config` JSONB
+3. Content appears automatically in the Flutter library (instruments loaded from API)
 
-See [INSTRUMENTS.md](docs/INSTRUMENTS.md) for details.
+See [docs/FLUTTER_ARCHITECTURE.md](docs/FLUTTER_ARCHITECTURE.md) for frontend structure.
 
 ---
 
@@ -479,13 +404,11 @@ cp .env.example .env
 ### Running Tests
 
 ```bash
-# Backend tests
-cd backend
-npm test
+# Backend
+make test
 
-# Frontend tests
-cd frontend
-npm test
+# Frontend
+cd frontend/apps/app_web && flutter test
 ```
 
 ### Building Docker Images
@@ -496,6 +419,18 @@ docker-compose up
 ```
 
 See [DEVELOPMENT.md](docs/DEVELOPMENT.md) for more.
+
+---
+
+## 📌 Sprint Backlog (Kanban)
+
+Track work via **GitHub Issues** + **Projects** board:
+
+- **Backlog doc:** [docs/SPRINT_BACKLOG.md](docs/SPRINT_BACKLOG.md)
+- **Issue templates:** `.github/ISSUE_TEMPLATE/`
+- **Bulk create issues:** `./scripts/create-github-issues.sh`
+
+**Kanban columns:** Backlog → Ready → In Progress → In Review → Done
 
 ---
 
@@ -511,21 +446,20 @@ Contributions are welcome! Here's how to help:
 
 ### Development Guidelines
 
-- Follow ESLint/Prettier for code style
+- Follow Go and Dart/Flutter conventions in each package
 - Write tests for new features
-- Update documentation
-- Test on multiple instruments if applicable
+- Update [docs/API_SPEC.md](docs/API_SPEC.md) when adding endpoints
+- Run `make test` and `make e2e-test` before opening PRs
 
 ---
 
 ## 📚 Documentation
 
-- [Architecture Overview](docs/ARCHITECTURE.md) - System design & components
-- [API Specification](docs/API_SPEC.md) - Complete API reference
-- [Database Schema](docs/DATABASE.md) - Database design & migrations
-- [Instruments Guide](docs/INSTRUMENTS.md) - Adding new instruments
-- [Setup Guide](docs/SETUP.md) - Detailed setup instructions
-- [Development Guide](docs/DEVELOPMENT.md) - Development workflow
+- [API Specification](docs/API_SPEC.md) - REST + WebSocket reference
+- [Deploy Guide](docs/DEPLOY.md) - Production deployment
+- [Oracle CI/CD](docs/DEPLOY_ORACLE_CI.md) - GitHub Actions → Oracle VM
+- [Sprint Backlog](docs/SPRINT_BACKLOG.md) - Kanban / issue tracking
+- [Flutter Architecture](docs/FLUTTER_ARCHITECTURE.md) - Frontend monorepo layout
 
 ---
 

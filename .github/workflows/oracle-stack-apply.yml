@@ -1,0 +1,159 @@
+name: Oracle Stack Apply
+
+# Retry applying a saved OCI Resource Manager stack when Ampere A1 is out of capacity.
+# Stops immediately when VM is already RUNNING (scheduled runs become no-ops).
+
+on:
+  schedule:
+    # Every 30 minutes — one short retry burst per tick until VM exists
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+    inputs:
+      max_attempts:
+        description: Max apply attempts this run (0 = until success)
+        required: false
+        default: "20"
+      interval_sec:
+        description: Seconds between retries on out-of-capacity
+        required: false
+        default: "90"
+
+concurrency:
+  group: oracle-stack-apply
+  cancel-in-progress: false
+
+jobs:
+  apply-stack:
+    runs-on: ubuntu-latest
+    # Same environment as Deploy Oracle — secrets may live under Environment → production
+    environment: production
+    timeout-minutes: 45
+    steps:
+      - name: Validate required secrets
+        run: |
+          set -euo pipefail
+          report() {
+            local name="$1" val="$2"
+            if [[ -n "$val" ]]; then
+              echo "  ${name}: set"
+            else
+              echo "  ${name}: MISSING"
+            fi
+          }
+          echo "Secret visibility (values never printed):"
+          report OCI_TENANCY_OCID "$OCI_TENANCY_OCID"
+          report OCI_USER_OCID "$OCI_USER_OCID"
+          report OCI_FINGERPRINT "$OCI_FINGERPRINT"
+          report OCI_API_PRIVATE_KEY "$OCI_API_PRIVATE_KEY"
+          report OCI_REGION "$OCI_REGION"
+          report OCI_STACK_ID "$OCI_STACK_ID"
+
+          missing=()
+          for name in OCI_TENANCY_OCID OCI_USER_OCID OCI_FINGERPRINT OCI_API_PRIVATE_KEY OCI_REGION OCI_STACK_ID; do
+            if [[ -z "${!name:-}" ]]; then
+              missing+=("$name")
+            fi
+          done
+          if [[ ${#missing[@]} -ne 0 ]]; then
+            echo ""
+            echo "::error::Missing: ${missing[*]}"
+            echo "Add as Repository OR Environment (production) secrets — exact names, case-sensitive."
+            echo "Common mistake: added under Variables tab instead of Secrets."
+            exit 1
+          fi
+          if ! grep -q 'BEGIN.*PRIVATE KEY' <<<"$OCI_API_PRIVATE_KEY"; then
+            echo "::error::OCI_API_PRIVATE_KEY must include PEM BEGIN/END lines"
+            exit 1
+          fi
+          if [[ "$OCI_USER_OCID" == "$OCI_TENANCY_OCID" ]]; then
+            echo "::error::OCI_USER_OCID must be the USER OCID, not the tenancy OCID"
+            exit 1
+          fi
+          if [[ "$OCI_USER_OCID" != ocid1.user.* ]]; then
+            echo "::warning::OCI_USER_OCID should start with ocid1.user"
+          fi
+          if [[ "$OCI_FINGERPRINT" != *:* ]]; then
+            echo "::warning::OCI_FINGERPRINT usually contains colons (aa:bb:cc:...)"
+          fi
+        env:
+          OCI_TENANCY_OCID: ${{ secrets.OCI_TENANCY_OCID }}
+          OCI_USER_OCID: ${{ secrets.OCI_USER_OCID }}
+          OCI_FINGERPRINT: ${{ secrets.OCI_FINGERPRINT }}
+          OCI_API_PRIVATE_KEY: ${{ secrets.OCI_API_PRIVATE_KEY }}
+          OCI_REGION: ${{ secrets.OCI_REGION }}
+          OCI_STACK_ID: ${{ secrets.OCI_STACK_ID || vars.OCI_STACK_ID }}
+
+      - uses: actions/checkout@v4
+
+      - name: Install OCI CLI
+        run: pip install oci-cli
+
+      - name: Configure OCI CLI
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.oci"
+          # Preserve PEM newlines; also accept secrets pasted with literal \n
+          if grep -q '\\n' <<<"$OCI_API_PRIVATE_KEY"; then
+            printf '%b' "$OCI_API_PRIVATE_KEY" > "$HOME/.oci/oci_api_key.pem"
+          else
+            printf '%s\n' "$OCI_API_PRIVATE_KEY" > "$HOME/.oci/oci_api_key.pem"
+          fi
+          tr -d '\r' < "$HOME/.oci/oci_api_key.pem" > "$HOME/.oci/oci_api_key.pem.tmp"
+          mv "$HOME/.oci/oci_api_key.pem.tmp" "$HOME/.oci/oci_api_key.pem"
+          chmod 600 "$HOME/.oci/oci_api_key.pem"
+          pem_lines=$(wc -l < "$HOME/.oci/oci_api_key.pem")
+          if [[ "$pem_lines" -lt 3 ]]; then
+            echo "::error::OCI_API_PRIVATE_KEY looks like a single line — re-paste the full PEM with real line breaks"
+            exit 1
+          fi
+          {
+            echo '[DEFAULT]'
+            echo "user=${OCI_USER_OCID}"
+            echo "fingerprint=${OCI_FINGERPRINT}"
+            echo "tenancy=${OCI_TENANCY_OCID}"
+            echo "region=${OCI_REGION}"
+            echo "key_file=${HOME}/.oci/oci_api_key.pem"
+          } > "$HOME/.oci/config"
+          if ! oci iam region list --query 'data[0].name' --raw-output 2>&1; then
+            echo "::error::OCI authentication failed — check USER OCID, FINGERPRINT, and PEM belong to the same API key"
+            exit 1
+          fi
+          echo "OCI CLI authenticated for region ${OCI_REGION}"
+        env:
+          OCI_USER_OCID: ${{ secrets.OCI_USER_OCID }}
+          OCI_FINGERPRINT: ${{ secrets.OCI_FINGERPRINT }}
+          OCI_TENANCY_OCID: ${{ secrets.OCI_TENANCY_OCID }}
+          OCI_REGION: ${{ secrets.OCI_REGION }}
+          OCI_API_PRIVATE_KEY: ${{ secrets.OCI_API_PRIVATE_KEY }}
+
+      - name: Apply stack (retry until success or limit)
+        run: |
+          set -euo pipefail
+          MAX="${MAX_ATTEMPTS}"
+          INTERVAL="${INTERVAL_SEC}"
+          VM_NAME="${ORACLE_VM_NAME:-musica-tutor-vm}"
+
+          echo "Stack: ${OCI_STACK_ID}"
+          echo "VM name: ${VM_NAME}"
+          echo "Max attempts this run: ${MAX}"
+          echo "Interval: ${INTERVAL}s"
+
+          chmod +x scripts/oracle-stack-apply-retry.sh
+          ./scripts/oracle-stack-apply-retry.sh \
+            --stack-id "$OCI_STACK_ID" \
+            --vm-name "$VM_NAME" \
+            --max-attempts "$MAX" \
+            --interval "$INTERVAL"
+        env:
+          OCI_STACK_ID: ${{ secrets.OCI_STACK_ID || vars.OCI_STACK_ID }}
+          ORACLE_VM_NAME: ${{ vars.ORACLE_VM_NAME }}
+          MAX_ATTEMPTS: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.max_attempts || '3' }}
+          INTERVAL_SEC: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.interval_sec || '90' }}
+
+      - name: Hint after success
+        if: success()
+        run: |
+          echo "If public_ip was printed above:"
+          echo "  1. SSH to VM and run scripts/oracle-vm-bootstrap.sh"
+          echo "  2. Add ORACLE_SSH_* secrets for Deploy Oracle workflow"
+          echo "  3. Disable this workflow (Actions → Oracle Stack Apply → ...) when VM is stable"
