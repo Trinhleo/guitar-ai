@@ -3,6 +3,7 @@ library;
 export 'screens/achievements_screen.dart';
 export 'screens/history_screen.dart';
 export 'screens/home_screen.dart';
+export 'screens/leaderboard_screen.dart';
 export 'screens/library_screen.dart';
 export 'screens/login_screen.dart';
 export 'screens/practice_screen.dart';

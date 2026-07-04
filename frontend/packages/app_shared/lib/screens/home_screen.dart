@@ -4,6 +4,7 @@ import 'package:network/network.dart';
 import '../services/auth_store.dart';
 import 'achievements_screen.dart';
 import 'history_screen.dart';
+import 'leaderboard_screen.dart';
 import 'library_screen.dart';
 import 'practice_screen.dart';
 import 'progress_screen.dart';
@@ -54,6 +55,17 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: const Text('Guitar AI Tutor'),
         actions: [
+          IconButton(
+            tooltip: 'Leaderboard',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => LeaderboardScreen(api: widget.api),
+                ),
+              );
+            },
+            icon: const Icon(Icons.leaderboard),
+          ),
           IconButton(
             tooltip: 'Achievements',
             onPressed: () {

@@ -145,3 +145,36 @@ type RecommendationResponse struct {
 	TargetDifficulty int                  `json:"targetDifficulty"`
 	AverageScore     *float64             `json:"averageScore,omitempty"`
 }
+
+type LeaderboardEntry struct {
+	Rank          int     `json:"rank"`
+	UserID        string  `json:"userId"`
+	DisplayName   string  `json:"displayName"`
+	AverageScore  float64 `json:"averageScore"`
+	BestScore     float64 `json:"bestScore"`
+	SessionCount  int     `json:"sessionCount"`
+	IsCurrentUser bool    `json:"isCurrentUser"`
+}
+
+type LeaderboardResponse struct {
+	Items           []LeaderboardEntry `json:"items"`
+	Instrument      string             `json:"instrument,omitempty"`
+	CurrentUserRank *int               `json:"currentUserRank,omitempty"`
+}
+
+type PracticeInsight struct {
+	Category string `json:"category"`
+	Message  string `json:"message"`
+	Severity string `json:"severity"`
+}
+
+type PracticeInsightsResponse struct {
+	WeakArea         *string           `json:"weakArea,omitempty"`
+	PitchAverage     *float64          `json:"pitchAverage,omitempty"`
+	TimingAverage    *float64          `json:"timingAverage,omitempty"`
+	PracticeStreak   int               `json:"practiceStreak"`
+	SessionsThisWeek int               `json:"sessionsThisWeek"`
+	ScoreImprovement *float64          `json:"scoreImprovement,omitempty"`
+	TopInstrument    *string           `json:"topInstrument,omitempty"`
+	Insights         []PracticeInsight `json:"insights"`
+}

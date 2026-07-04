@@ -82,6 +82,36 @@ Requires `gh auth login` with `repo` scope.
 | Production deploy configs | ✅ Done |
 | Violin instrument | ✅ Done |
 | DB health check | ✅ Done |
+| Leaderboard API + UI | ✅ Done |
+| Drums instrument | ✅ Done |
+| Practice insights API | ✅ Done |
+
+---
+
+## Sprint 8 — Social & Insights
+
+### #31 — Leaderboard API + UI
+- **Priority:** P0 · **Area:** backend + frontend
+- **Goal:** Rank users by average session score
+- **Acceptance:**
+  - [x] `GET /api/stats/leaderboard` with optional instrument filter
+  - [x] Leaderboard screen with rank, scores, current user highlight
+  - [x] Integration tests
+
+### #32 — Drums instrument + content
+- **Priority:** P1 · **Area:** backend
+- **Goal:** Fourth instrument with rhythm exercises
+- **Acceptance:**
+  - [x] Migration 007 with drums + 3 exercises
+  - [x] Visible in instruments API
+
+### #33 — Practice insights API
+- **Priority:** P1 · **Area:** backend + frontend
+- **Goal:** Personalized tips based on practice patterns
+- **Acceptance:**
+  - [x] `GET /api/stats/insights` with streak, weak areas, suggestions
+  - [x] Insights section on Progress screen
+  - [x] E2E coverage
 
 ---
 
