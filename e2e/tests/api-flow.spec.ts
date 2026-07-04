@@ -54,6 +54,8 @@ test('full practice API flow', async ({ request }) => {
   expect(recommendations.ok()).toBeTruthy();
   const recBody = await recommendations.json();
   expect(Array.isArray(recBody.items)).toBeTruthy();
+  expect(recBody.items[0].content).toBeTruthy();
+  expect(recBody.items[0].reason).toBeTruthy();
 
   const results = await request.get(
     `${baseURL}/api/practice/${session.sessionId}/results`,

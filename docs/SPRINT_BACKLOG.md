@@ -78,6 +78,44 @@ Requires `gh auth login` with `repo` scope.
 | Session detail + pitch quality | ✅ Done |
 | Technique hints + recommendations | ✅ Done |
 | Docker web + E2E tests | ✅ Done |
+| Smart recommendations | ✅ Done |
+| Production deploy configs | ✅ Done |
+| Violin instrument | ✅ Done |
+| DB health check | ✅ Done |
+
+---
+
+## Sprint 7 — Production & Multi-Instrument
+
+### #27 — Smart recommendations (difficulty-aware)
+- **Priority:** P0 · **Area:** backend + frontend
+- **Goal:** Recommend content matched to user's average score
+- **Acceptance:**
+  - [x] Difficulty targeting based on performance
+  - [x] `reason` field per recommendation
+  - [x] Home screen shows recommendation reason
+
+### #28 — Production deploy configs
+- **Priority:** P1 · **Area:** infra
+- **Goal:** Document and config for production deployment
+- **Acceptance:**
+  - [x] `docker-compose.prod.yml`
+  - [x] `fly.toml` for API
+  - [x] `docs/DEPLOY.md`
+
+### #29 — Violin instrument + content
+- **Priority:** P1 · **Area:** backend
+- **Goal:** Third instrument with lessons
+- **Acceptance:**
+  - [x] Migration 006 with violin + 3 exercises
+  - [x] Visible in instruments API
+
+### #30 — Health check with DB ping
+- **Priority:** P1 · **Area:** backend
+- **Goal:** `/health` reports database connectivity
+- **Acceptance:**
+  - [x] Returns `db: ok` when Postgres reachable
+  - [x] Returns 503 when DB down
 
 ---
 

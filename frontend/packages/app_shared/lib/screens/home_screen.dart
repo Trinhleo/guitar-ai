@@ -25,7 +25,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late Future<({List<Instrument> instruments, List<MusicalContent> recommendations})> _homeFuture;
+  late Future<({List<Instrument> instruments, List<Recommendation> recommendations})> _homeFuture;
 
   @override
   void initState() {
@@ -37,14 +37,14 @@ class _HomeScreenState extends State<HomeScreen> {
     _homeFuture = _fetchHome();
   }
 
-  Future<({List<Instrument> instruments, List<MusicalContent> recommendations})> _fetchHome() async {
+  Future<({List<Instrument> instruments, List<Recommendation> recommendations})> _fetchHome() async {
     final results = await Future.wait([
       widget.api.listInstruments(),
       widget.api.getRecommendations(),
     ]);
     return (
       instruments: results[0] as List<Instrument>,
-      recommendations: results[1] as List<MusicalContent>,
+      recommendations: results[1] as List<Recommendation>,
     );
   }
 
@@ -104,7 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: FutureBuilder<({List<Instrument> instruments, List<MusicalContent> recommendations})>(
+      body: FutureBuilder<({List<Instrument> instruments, List<Recommendation> recommendations})>(
         future: _homeFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -130,18 +130,19 @@ class _HomeScreenState extends State<HomeScreen> {
                 Text('Recommended for you', style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 12),
                 ...data.recommendations.map(
-                  (content) => Card(
+                  (rec) => Card(
                     child: ListTile(
                       leading: const Icon(Icons.recommend),
-                      title: Text(content.title),
-                      subtitle: Text('${content.type} · level ${content.difficultyLevel}'),
+                      title: Text(rec.content.title),
+                      subtitle: Text('${rec.content.type} · level ${rec.content.difficultyLevel}\n${rec.reason}'),
+                      isThreeLine: true,
                       trailing: const Icon(Icons.play_arrow),
                       onTap: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
                             builder: (_) => PracticeScreen(
                               api: widget.api,
-                              content: content,
+                              content: rec.content,
                             ),
                           ),
                         );

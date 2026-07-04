@@ -20,6 +20,14 @@ cleanup() {
 trap cleanup EXIT
 
 echo "Starting API for e2e tests on port ${PORT}..."
+
+if command -v fuser >/dev/null 2>&1; then
+  fuser -k "${PORT}/tcp" 2>/dev/null || true
+elif command -v lsof >/dev/null 2>&1; then
+  lsof -ti ":${PORT}" | xargs -r kill -9 2>/dev/null || true
+fi
+sleep 1
+
 cd "$ROOT/backend"
 go run ./cmd/server migrate
 PORT="${PORT}" go run ./cmd/server &

@@ -340,3 +340,20 @@ class Achievement {
     );
   }
 }
+
+class Recommendation {
+  Recommendation({
+    required this.content,
+    required this.reason,
+  });
+
+  final MusicalContent content;
+  final String reason;
+
+  factory Recommendation.fromJson(Map<String, dynamic> json) {
+    return Recommendation(
+      content: MusicalContent.fromJson(json['content'] as Map<String, dynamic>),
+      reason: json['reason'] as String? ?? '',
+    );
+  }
+}
