@@ -154,7 +154,56 @@ Test from local:
 ssh -i ~/.ssh/guitar-ai-deploy ubuntu@<ORACLE_IP> "echo OK"
 ```
 
-## One-time: GitHub repository setup
+## GitHub Actions: auto-retry stack apply (Out of capacity)
+
+When Ampere A1 is often **Out of capacity**, use workflow **Oracle Stack Apply** — it retries your saved stack and **stops when VM is RUNNING** (later runs exit in seconds, no duplicate VMs).
+
+### 1. Create OCI API key (one-time, for GitHub only)
+
+Console → **Identity → Users** → pick your admin user (or create `musica-tutor-deploy`):
+
+1. **API Keys → Add API Key** → Download `.pem` (keep safe)
+2. Note **OCID** (user), **Fingerprint**, **Tenancy OCID** (Profile menu)
+3. Region: `ap-singapore-1`
+
+Policy (if using a dedicated user in group `musica-tutor-github`):
+
+```
+Allow group musica-tutor-github to manage all-resources in compartment musica-tutor-ai-prod
+Allow group musica-tutor-github to read stacks in tenancy
+```
+
+### 2. GitHub Secrets for OCI API
+
+**Settings → Secrets and variables → Actions → Secrets**
+
+| Secret | Value |
+|--------|-------|
+| `OCI_TENANCY_OCID` | Tenancy OCID (Profile → Tenancy) |
+| `OCI_USER_OCID` | User OCID |
+| `OCI_FINGERPRINT` | From API key creation |
+| `OCI_API_PRIVATE_KEY` | Full `.pem` file contents |
+| `OCI_REGION` | `ap-singapore-1` |
+| `OCI_STACK_ID` | `ocid1.ormstack.oc1.ap-singapore-1.amaaaaaaso7lw4iadqqwc7iggetnh6sj6jb5q6kojs6sim2xe7yili6xtlhq` |
+
+Optional variable: `ORACLE_VM_NAME` = `musica-tutor-vm` (default)
+
+### 3. Run / schedule
+
+| Trigger | Behavior |
+|---------|----------|
+| **Every 30 min** (cron) | Up to 3 apply attempts per run |
+| **Manual** | Actions → **Oracle Stack Apply** → Run (default 20 attempts) |
+
+When VM exists → workflow prints IP and exits; **disable the workflow** in Actions when done to save minutes.
+
+### 4. After VM is up
+
+Same as manual path: bootstrap on VM, then add **SSH secrets** below for **Deploy Oracle**.
+
+---
+
+## One-time: GitHub repository setup (deploy app)
 
 ### 1. Environment (recommended)
 
@@ -206,7 +255,7 @@ Optional: add required reviewers before deploy.
 | Health check fails in workflow | Open port 80 on Oracle Security List |
 | Build slow / timeout | Normal first build (~10–15 min); workflow timeout is 25m |
 | Deploy skipped | CI must pass on `main`; check workflow_run conclusion |
-| `Out of capacity` for A1 | Use `scripts/oracle-launch-vm-retry.sh` from Cloud Shell |
+| `Out of capacity` for A1 | Enable **Oracle Stack Apply** workflow + OCI API secrets |
 
 ## Manual deploy (without GitHub)
 

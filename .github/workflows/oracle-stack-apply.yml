@@ -1,0 +1,104 @@
+name: Oracle Stack Apply
+
+# Retry applying a saved OCI Resource Manager stack when Ampere A1 is out of capacity.
+# Stops immediately when VM is already RUNNING (scheduled runs become no-ops).
+
+on:
+  schedule:
+    # Every 30 minutes — one short retry burst per tick until VM exists
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+    inputs:
+      max_attempts:
+        description: Max apply attempts this run (0 = until success)
+        required: false
+        default: "20"
+      interval_sec:
+        description: Seconds between retries on out-of-capacity
+        required: false
+        default: "90"
+
+concurrency:
+  group: oracle-stack-apply
+  cancel-in-progress: false
+
+jobs:
+  apply-stack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Validate required secrets
+        run: |
+          set -euo pipefail
+          check() { [[ -n "${1:-}" ]] || { echo "::error::Missing secret: $2"; exit 1; }; }
+          check "$OCI_TENANCY_OCID" "OCI_TENANCY_OCID"
+          check "$OCI_USER_OCID" "OCI_USER_OCID"
+          check "$OCI_FINGERPRINT" "OCI_FINGERPRINT"
+          check "$OCI_API_PRIVATE_KEY" "OCI_API_PRIVATE_KEY"
+          check "$OCI_REGION" "OCI_REGION"
+          check "$OCI_STACK_ID" "OCI_STACK_ID"
+        env:
+          OCI_TENANCY_OCID: ${{ secrets.OCI_TENANCY_OCID }}
+          OCI_USER_OCID: ${{ secrets.OCI_USER_OCID }}
+          OCI_FINGERPRINT: ${{ secrets.OCI_FINGERPRINT }}
+          OCI_API_PRIVATE_KEY: ${{ secrets.OCI_API_PRIVATE_KEY }}
+          OCI_REGION: ${{ secrets.OCI_REGION }}
+          OCI_STACK_ID: ${{ secrets.OCI_STACK_ID }}
+
+      - uses: actions/checkout@v4
+
+      - name: Install OCI CLI
+        run: pip install oci-cli
+
+      - name: Configure OCI CLI
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.oci"
+          printf '%s\n' "$OCI_API_PRIVATE_KEY" > "$HOME/.oci/oci_api_key.pem"
+          chmod 600 "$HOME/.oci/oci_api_key.pem"
+          cat > "$HOME/.oci/config" <<EOF
+[DEFAULT]
+user=${OCI_USER_OCID}
+fingerprint=${OCI_FINGERPRINT}
+tenancy=${OCI_TENANCY_OCID}
+region=${OCI_REGION}
+key_file=${HOME}/.oci/oci_api_key.pem
+EOF
+          oci iam region list --limit 1 >/dev/null
+          echo "OCI CLI authenticated for region ${OCI_REGION}"
+        env:
+          OCI_USER_OCID: ${{ secrets.OCI_USER_OCID }}
+          OCI_FINGERPRINT: ${{ secrets.OCI_FINGERPRINT }}
+          OCI_TENANCY_OCID: ${{ secrets.OCI_TENANCY_OCID }}
+          OCI_REGION: ${{ secrets.OCI_REGION }}
+          OCI_API_PRIVATE_KEY: ${{ secrets.OCI_API_PRIVATE_KEY }}
+
+      - name: Apply stack (retry until success or limit)
+        run: |
+          set -euo pipefail
+          MAX="${{ github.event_name == 'workflow_dispatch' && inputs.max_attempts || '3' }}"
+          INTERVAL="${{ github.event_name == 'workflow_dispatch' && inputs.interval_sec || '90' }}"
+          VM_NAME="${ORACLE_VM_NAME:-musica-tutor-vm}"
+
+          echo "Stack: ${OCI_STACK_ID}"
+          echo "VM name: ${VM_NAME}"
+          echo "Max attempts this run: ${MAX}"
+          echo "Interval: ${INTERVAL}s"
+
+          chmod +x scripts/oracle-stack-apply-retry.sh
+          ./scripts/oracle-stack-apply-retry.sh \
+            --stack-id "$OCI_STACK_ID" \
+            --vm-name "$VM_NAME" \
+            --max-attempts "$MAX" \
+            --interval "$INTERVAL"
+        env:
+          OCI_STACK_ID: ${{ secrets.OCI_STACK_ID }}
+          ORACLE_VM_NAME: ${{ vars.ORACLE_VM_NAME }}
+
+      - name: Hint after success
+        if: success()
+        run: |
+          echo "If public_ip was printed above:"
+          echo "  1. SSH to VM and run scripts/oracle-vm-bootstrap.sh"
+          echo "  2. Add ORACLE_SSH_* secrets for Deploy Oracle workflow"
+          echo "  3. Disable this workflow (Actions → Oracle Stack Apply → ...) when VM is stable"
