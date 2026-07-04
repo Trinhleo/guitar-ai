@@ -158,20 +158,93 @@ ssh -i ~/.ssh/guitar-ai-deploy ubuntu@<ORACLE_IP> "echo OK"
 
 When Ampere A1 is often **Out of capacity**, use workflow **Oracle Stack Apply** — it retries your saved stack and **stops when VM is RUNNING** (later runs exit in seconds, no duplicate VMs).
 
-### 1. Create OCI API key (one-time, for GitHub only)
+### 1. IAM user for GitHub Actions
 
-Console → **Identity → Users** → pick your admin user (or create `musica-tutor-deploy`):
+Use a **dedicated user** (e.g. `musica-tutor-deploy`) — not the admin account.
 
-1. **API Keys → Add API Key** → Download `.pem` (keep safe)
-2. Note **OCID** (user), **Fingerprint**, **Tenancy OCID** (Profile menu)
-3. Region: `ap-singapore-1`
+#### Step A — Group
 
-Policy (if using a dedicated user in group `musica-tutor-github`):
+**Identity → Groups → Create**
+
+```
+Name: musica-tutor-github
+```
+
+#### Step B — Policy (create at **ROOT** tenancy, Manual editor)
+
+**Identity → Policies → Create** → Compartment = **root** (not `musica-tutor-ai-prod`)
 
 ```
 Allow group musica-tutor-github to manage all-resources in compartment musica-tutor-ai-prod
-Allow group musica-tutor-github to read stacks in tenancy
+Allow group musica-tutor-github to manage orm-stacks in compartment musica-tutor-ai-prod
+Allow group musica-tutor-github to manage orm-jobs in compartment musica-tutor-ai-prod
 ```
+
+Do **not** use `read stacks in tenancy` (invalid). Do **not** use `compartment id ocid1.tenancy...`.
+
+If stack read still fails, add at **root**:
+
+```
+Allow group musica-tutor-github to inspect orm-stacks in tenancy
+```
+
+#### Step C — User + API key
+
+1. **Identity → Users → Create** (`musica-tutor-deploy`, Console access **OFF**)
+2. **Groups → musica-tutor-github → Add user**
+3. User → **API Keys → Add API Key** → download `.pem`
+4. Copy **User OCID**, **Fingerprint**, **Tenancy OCID**
+
+#### Step D — Confirm stack compartment (Cloud Shell)
+
+```bash
+oci resource-manager stack get \
+  --stack-id ocid1.ormstack.oc1.ap-singapore-1.amaaaaaaso7lw4iadqqwc7iggetnh6sj6jb5q6kojs6sim2xe7yili6xtlhq \
+  --query 'data."compartment-id"' --raw-output
+
+oci iam compartment get --compartment-id <COMPARTMENT_OCID> --query 'data.name' --raw-output
+```
+
+Must show `musica-tutor-ai-prod`. If stack is in **root**, move stack or add policy for that compartment.
+
+#### Step E — Test API user (not admin session)
+
+In Cloud Shell:
+
+```bash
+git clone https://github.com/Trinhleo/guitar-ai.git ~/guitar-ai
+cd ~/guitar-ai
+chmod +x scripts/verify-oci-github-user.sh
+
+# Paste API user .pem
+mkdir -p ~/.oci
+nano ~/.oci/github-user.pem   # paste private key
+
+cat > ~/.oci/github-user.conf <<EOF
+[DEFAULT]
+user=<OCI_USER_OCID>
+fingerprint=<OCI_FINGERPRINT>
+tenancy=<OCI_TENANCY_OCID>
+region=ap-singapore-1
+key_file=$HOME/.oci/github-user.pem
+EOF
+
+export OCI_CONFIG_FILE=~/.oci/github-user.conf
+export OCI_STACK_ID=ocid1.ormstack.oc1.ap-singapore-1.amaaaaaaso7lw4iadqqwc7iggetnh6sj6jb5q6kojs6sim2xe7yili6xtlhq
+./scripts/verify-oci-github-user.sh
+```
+
+When this prints **OK**, use the **same** User OCID / Fingerprint / PEM in GitHub Secrets.
+
+**Checklist if GitHub fails but Cloud Shell admin works:**
+
+| Check | Fix |
+|-------|-----|
+| User in group `musica-tutor-github` | Groups → Add user |
+| `OCI_USER_OCID` = deploy user, not tenancy | User page → OCID |
+| PEM + fingerprint from **same** API key | Re-create key if unsure |
+| Secrets under **Environment → production** or Repository | Not Variables |
+| Policy at **root** | Not inside child compartment only |
 
 ### 2. GitHub Secrets for OCI API
 

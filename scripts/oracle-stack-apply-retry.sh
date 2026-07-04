@@ -81,9 +81,18 @@ load_stack_metadata() {
     return
   fi
 
-  local meta
-  meta="$(oci resource-manager stack get --stack-id "$STACK_ID" --query 'data.{compartment:"compartment-id",state:"lifecycle-state",name:"display-name"}' 2>/dev/null)" \
-    || die "Cannot read stack ${STACK_ID}. Check OCID and permissions."
+  local meta err_file
+  err_file="$(mktemp)"
+  if ! meta="$(oci resource-manager stack get \
+    --stack-id "$STACK_ID" \
+    --query 'data.{compartment:"compartment-id",state:"lifecycle-state",name:"display-name"}' \
+    2>"$err_file")"; then
+    warn "OCI stack get failed:"
+    sed 's/^/  /' "$err_file" >&2 || true
+    rm -f "$err_file"
+    die "Cannot read stack ${STACK_ID}. Fix IAM (see docs/DEPLOY_ORACLE_CI.md#iam-user-for-github-actions)."
+  fi
+  rm -f "$err_file"
 
   if [[ -z "$COMPARTMENT_ID" ]]; then
     COMPARTMENT_ID="$(echo "$meta" | python3 -c "import json,sys; print(json.load(sys.stdin)['compartment'])")"
