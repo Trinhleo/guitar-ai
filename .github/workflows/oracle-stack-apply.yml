@@ -25,29 +25,45 @@ concurrency:
 jobs:
   apply-stack:
     runs-on: ubuntu-latest
+    # Same environment as Deploy Oracle — secrets may live under Environment → production
+    environment: production
     timeout-minutes: 45
     steps:
       - name: Validate required secrets
         run: |
           set -euo pipefail
-          required=(OCI_TENANCY_OCID OCI_USER_OCID OCI_FINGERPRINT OCI_API_PRIVATE_KEY OCI_REGION OCI_STACK_ID)
+          report() {
+            local name="$1" val="$2"
+            if [[ -n "$val" ]]; then
+              echo "  ${name}: set"
+            else
+              echo "  ${name}: MISSING"
+            fi
+          }
+          echo "Secret visibility (values never printed):"
+          report OCI_TENANCY_OCID "$OCI_TENANCY_OCID"
+          report OCI_USER_OCID "$OCI_USER_OCID"
+          report OCI_FINGERPRINT "$OCI_FINGERPRINT"
+          report OCI_API_PRIVATE_KEY "$OCI_API_PRIVATE_KEY"
+          report OCI_REGION "$OCI_REGION"
+          report OCI_STACK_ID "$OCI_STACK_ID"
+
           missing=()
-          for name in "${required[@]}"; do
+          for name in OCI_TENANCY_OCID OCI_USER_OCID OCI_FINGERPRINT OCI_API_PRIVATE_KEY OCI_REGION OCI_STACK_ID; do
             if [[ -z "${!name:-}" ]]; then
               missing+=("$name")
             fi
           done
           if [[ ${#missing[@]} -ne 0 ]]; then
-            echo "::error::Missing GitHub secrets: ${missing[*]}"
-            echo "Add them at Settings → Secrets and variables → Actions"
+            echo ""
+            echo "::error::Missing: ${missing[*]}"
+            echo "Add as Repository OR Environment (production) secrets — exact names, case-sensitive."
+            echo "Common mistake: added under Variables tab instead of Secrets."
             exit 1
           fi
           if ! grep -q 'BEGIN.*PRIVATE KEY' <<<"$OCI_API_PRIVATE_KEY"; then
-            echo "::error::OCI_API_PRIVATE_KEY must include PEM header/footer lines"
+            echo "::error::OCI_API_PRIVATE_KEY must include PEM BEGIN/END lines"
             exit 1
-          fi
-          if [[ "$OCI_STACK_ID" != ocid1.ormstack.* ]]; then
-            echo "::warning::OCI_STACK_ID should start with ocid1.ormstack (Resource Manager stack OCID)"
           fi
         env:
           OCI_TENANCY_OCID: ${{ secrets.OCI_TENANCY_OCID }}
@@ -55,7 +71,7 @@ jobs:
           OCI_FINGERPRINT: ${{ secrets.OCI_FINGERPRINT }}
           OCI_API_PRIVATE_KEY: ${{ secrets.OCI_API_PRIVATE_KEY }}
           OCI_REGION: ${{ secrets.OCI_REGION }}
-          OCI_STACK_ID: ${{ secrets.OCI_STACK_ID }}
+          OCI_STACK_ID: ${{ secrets.OCI_STACK_ID || vars.OCI_STACK_ID }}
 
       - uses: actions/checkout@v4
 
@@ -104,7 +120,7 @@ jobs:
             --max-attempts "$MAX" \
             --interval "$INTERVAL"
         env:
-          OCI_STACK_ID: ${{ secrets.OCI_STACK_ID }}
+          OCI_STACK_ID: ${{ secrets.OCI_STACK_ID || vars.OCI_STACK_ID }}
           ORACLE_VM_NAME: ${{ vars.ORACLE_VM_NAME }}
           MAX_ATTEMPTS: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.max_attempts || '3' }}
           INTERVAL_SEC: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.interval_sec || '90' }}

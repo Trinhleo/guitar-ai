@@ -175,7 +175,9 @@ Allow group musica-tutor-github to read stacks in tenancy
 
 ### 2. GitHub Secrets for OCI API
 
-**Settings → Secrets and variables → Actions → Secrets**
+**Settings → Secrets and variables → Actions**
+
+Add as **Repository secrets** OR **Environment → production → secrets** (workflow uses `environment: production`):
 
 | Secret | Value |
 |--------|-------|
@@ -184,7 +186,9 @@ Allow group musica-tutor-github to read stacks in tenancy
 | `OCI_FINGERPRINT` | From API key creation |
 | `OCI_API_PRIVATE_KEY` | Full `.pem` file contents |
 | `OCI_REGION` | `ap-singapore-1` |
-| `OCI_STACK_ID` | `ocid1.ormstack.oc1.ap-singapore-1.amaaaaaaso7lw4iadqqwc7iggetnh6sj6jb5q6kojs6sim2xe7yili6xtlhq` |
+| `OCI_STACK_ID` | Stack OCID (or use **Variable** `OCI_STACK_ID` — not sensitive) |
+
+**Common mistakes:** putting values under **Variables** instead of **Secrets** (except `OCI_STACK_ID`); typo in name (`OCI_USER_OCID` is case-sensitive).
 
 Optional variable: `ORACLE_VM_NAME` = `musica-tutor-vm` (default)
 
