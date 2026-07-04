@@ -298,7 +298,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.check),
-                    label: const Text('Submit'),
+                    label: const Text('Demo score'),
                   ),
                 ),
               ],

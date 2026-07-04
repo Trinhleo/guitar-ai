@@ -88,6 +88,37 @@ Requires `gh auth login` with `repo` scope.
 
 ---
 
+## Stabilization — Quality & CI
+
+### #34 — Fix CI pipeline
+- **Priority:** P0 · **Area:** infra
+- **Acceptance:**
+  - [x] Flutter mobile tests run with correct working directory
+  - [x] CI green on `main`
+
+### #35 — Metrics upsert + DB constraints
+- **Priority:** P0 · **Area:** backend
+- **Acceptance:**
+  - [x] Re-evaluate upserts `performance_metrics` (one row per session)
+  - [x] Migration 008: unique index, FK, indexes
+  - [x] Integration test for re-evaluate
+
+### #36 — Security + docs sync
+- **Priority:** P1 · **Area:** backend + docs
+- **Acceptance:**
+  - [x] Refuse default JWT secret when `GO_ENV=production`
+  - [x] README + `docs/API_SPEC.md` synced with actual API
+  - [x] Violin UUID conflict fixed; `DemoUserID` removed
+
+### #37 — Frontend polish
+- **Priority:** P1 · **Area:** frontend
+- **Acceptance:**
+  - [x] Home recommendations filter by instrument
+  - [x] Practice "Submit" renamed to "Demo score"
+  - [x] App title updated to "Music AI Tutor"
+
+---
+
 ## Sprint 8 — Social & Insights
 
 ### #31 — Leaderboard API + UI

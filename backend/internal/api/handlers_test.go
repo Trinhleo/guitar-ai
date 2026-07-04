@@ -783,3 +783,50 @@ func TestPracticeInsights(t *testing.T) {
 		t.Fatal("expected sessionsThisWeek in insights response")
 	}
 }
+
+func TestEvaluateReplacesMetricsOnReEvaluate(t *testing.T) {
+	router := testRouter(t)
+	auth := registerUser(t, router, uniqueEmail("reeval"), "password123")
+
+	startReq := httptest.NewRequest(http.MethodPost, "/api/practice/start/"+contentID, bytes.NewReader([]byte(`{}`)))
+	startReq.Header.Set("Content-Type", "application/json")
+	startReq.Header.Set("Authorization", authHeader(auth.Token))
+	startRec := httptest.NewRecorder()
+	router.ServeHTTP(startRec, startReq)
+
+	var startResp map[string]string
+	if err := json.Unmarshal(startRec.Body.Bytes(), &startResp); err != nil {
+		t.Fatalf("decode start: %v", err)
+	}
+	sessionID := startResp["sessionId"]
+
+	evalNotes := []evaluation.Note{
+		{Note: "E4", StartMs: 0, DurationMs: 500},
+	}
+	evalBody, _ := json.Marshal(map[string]any{"playedNotes": evalNotes})
+
+	for i := 0; i < 2; i++ {
+		evalReq := httptest.NewRequest(http.MethodPost, "/api/practice/"+sessionID+"/evaluate", bytes.NewReader(evalBody))
+		evalReq.Header.Set("Content-Type", "application/json")
+		evalReq.Header.Set("Authorization", authHeader(auth.Token))
+		evalRec := httptest.NewRecorder()
+		router.ServeHTTP(evalRec, evalReq)
+		if evalRec.Code != http.StatusOK {
+			t.Fatalf("evaluate #%d status = %d, body = %s", i+1, evalRec.Code, evalRec.Body.String())
+		}
+	}
+
+	progressReq := httptest.NewRequest(http.MethodGet, "/api/stats/progress", nil)
+	progressReq.Header.Set("Authorization", authHeader(auth.Token))
+	progressRec := httptest.NewRecorder()
+	router.ServeHTTP(progressRec, progressReq)
+
+	var progress map[string]any
+	if err := json.Unmarshal(progressRec.Body.Bytes(), &progress); err != nil {
+		t.Fatalf("decode progress: %v", err)
+	}
+	trends := progress["trends"].([]any)
+	if len(trends) != 1 {
+		t.Fatalf("expected 1 trend point after re-evaluate, got %d", len(trends))
+	}
+}

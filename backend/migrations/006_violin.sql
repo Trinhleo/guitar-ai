@@ -15,7 +15,7 @@ VALUES (
 INSERT INTO musical_content (id, type, title, instrument_id, difficulty_level, bpm, key, expected_notes)
 VALUES
   (
-    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    '01111111-1111-1111-1111-111111111111',
     'lesson',
     'Open G String',
     'violin',
