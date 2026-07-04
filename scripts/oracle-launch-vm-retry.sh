@@ -73,7 +73,7 @@ die() { warn "Error: $*"; exit 1; }
 
 require_oci() {
   command -v oci >/dev/null 2>&1 || die "oci CLI not found. Use Oracle Cloud Shell or install OCI CLI."
-  oci iam region list --limit 1 >/dev/null 2>&1 || die "OCI CLI not authenticated. Run from Oracle Cloud Shell or oci setup config."
+  oci iam region list --query 'data[0].name' --raw-output >/dev/null 2>&1 || die "OCI CLI not authenticated. Run from Oracle Cloud Shell or oci setup config."
 }
 
 parse_args() {

@@ -55,7 +55,7 @@ die() { warn "Error: $*"; exit 1; }
 
 require_oci() {
   command -v oci >/dev/null 2>&1 || die "oci CLI not found. Open Oracle Cloud Shell."
-  oci iam region list --limit 1 >/dev/null 2>&1 || die "OCI CLI not authenticated."
+  oci iam region list --query 'data[0].name' --raw-output >/dev/null 2>&1 || die "OCI CLI not authenticated."
 }
 
 parse_args() {
