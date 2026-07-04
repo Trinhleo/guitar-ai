@@ -101,6 +101,8 @@ jobs:
           tr -d '\r' < "$HOME/.oci/oci_api_key.pem" > "$HOME/.oci/oci_api_key.pem.tmp"
           mv "$HOME/.oci/oci_api_key.pem.tmp" "$HOME/.oci/oci_api_key.pem"
           chmod 600 "$HOME/.oci/oci_api_key.pem"
+          chmod 600 "$HOME/.oci/config"
+          export OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING=True
           pem_lines=$(wc -l < "$HOME/.oci/oci_api_key.pem")
           if [[ "$pem_lines" -lt 3 ]]; then
             echo "::error::OCI_API_PRIVATE_KEY looks like a single line — re-paste the full PEM with real line breaks"
