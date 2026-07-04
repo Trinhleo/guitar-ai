@@ -114,7 +114,7 @@ jobs:
             echo "region=${OCI_REGION}"
             echo "key_file=${HOME}/.oci/oci_api_key.pem"
           } > "$HOME/.oci/config"
-          if ! oci iam region list --limit 1 --query 'data[0].name' --raw-output; then
+          if ! oci iam region list --query 'data[0].name' --raw-output 2>&1; then
             echo "::error::OCI authentication failed — check USER OCID, FINGERPRINT, and PEM belong to the same API key"
             exit 1
           fi
