@@ -201,20 +201,26 @@ apply_stack_once() {
 
   log "Apply job created: ${job_id}"
 
-  set +e
-  oci resource-manager job wait-for-job \
-    --job-id "$job_id" \
-    --wait-for-state SUCCEEDED \
-    --max-wait-seconds "$WAIT_TIMEOUT_SEC" >/dev/null 2>&1
-  local wait_rc=$?
-  set -e
+  # Poll until terminal state — wait-for-job often returns early while still ACCEPTED
+  local deadline=$((SECONDS + WAIT_TIMEOUT_SEC))
+  local state=""
+  while (( SECONDS < deadline )); do
+    state="$(oci resource-manager job get --job-id "$job_id" --query 'data."lifecycle-state"' --raw-output)"
+    case "$state" in
+      SUCCEEDED) return 0 ;;
+      FAILED|CANCELED|CANCELING) break ;;
+      ACCEPTED|IN_PROGRESS) sleep 15 ;;
+      *) sleep 15 ;;
+    esac
+  done
 
-  if [[ $wait_rc -eq 0 ]]; then
+  if [[ "$state" == "SUCCEEDED" ]]; then
     return 0
   fi
 
-  local state
-  state="$(oci resource-manager job get --job-id "$job_id" --query 'data."lifecycle-state"' --raw-output)"
+  if [[ -z "$state" || "$state" == "null" ]]; then
+    state="$(oci resource-manager job get --job-id "$job_id" --query 'data."lifecycle-state"' --raw-output)"
+  fi
   if job_failed_out_of_capacity "$job_id"; then
     warn "Apply failed: out of capacity (${state})"
   else
