@@ -103,19 +103,45 @@ class EvaluationScores {
     required this.pitchAccuracy,
     required this.timingAccuracy,
     required this.techniqueScore,
+    this.techniqueHints = const [],
   });
 
   final double overallScore;
   final double pitchAccuracy;
   final double timingAccuracy;
   final double techniqueScore;
+  final List<TechniqueHint> techniqueHints;
 
   factory EvaluationScores.fromJson(Map<String, dynamic> json) {
+    final hints = (json['techniqueHints'] as List<dynamic>? ?? [])
+        .map((item) => TechniqueHint.fromJson(item as Map<String, dynamic>))
+        .toList();
     return EvaluationScores(
       overallScore: (json['overallScore'] as num).toDouble(),
       pitchAccuracy: (json['pitchAccuracy'] as num).toDouble(),
       timingAccuracy: (json['timingAccuracy'] as num).toDouble(),
       techniqueScore: (json['techniqueScore'] as num).toDouble(),
+      techniqueHints: hints,
+    );
+  }
+}
+
+class TechniqueHint {
+  TechniqueHint({
+    required this.code,
+    required this.message,
+    required this.severity,
+  });
+
+  final String code;
+  final String message;
+  final String severity;
+
+  factory TechniqueHint.fromJson(Map<String, dynamic> json) {
+    return TechniqueHint(
+      code: json['code'] as String,
+      message: json['message'] as String,
+      severity: json['severity'] as String? ?? 'info',
     );
   }
 }
@@ -130,6 +156,7 @@ class PracticeResults {
     required this.techniqueScore,
     required this.expectedNotes,
     required this.playedNotes,
+    required this.techniqueHints,
     required this.createdAt,
   });
 
@@ -141,6 +168,7 @@ class PracticeResults {
   final double? techniqueScore;
   final List<PracticeNote> expectedNotes;
   final List<PracticeNote> playedNotes;
+  final List<TechniqueHint> techniqueHints;
   final String? createdAt;
 
   factory PracticeResults.fromJson(Map<String, dynamic> json) {
@@ -152,6 +180,9 @@ class PracticeResults {
     final played = (json['playedNotes'] as List<dynamic>? ?? [])
         .map((item) => PracticeNote.fromJson(item as Map<String, dynamic>))
         .toList();
+    final hints = (json['techniqueHints'] as List<dynamic>? ?? [])
+        .map((item) => TechniqueHint.fromJson(item as Map<String, dynamic>))
+        .toList();
 
     return PracticeResults(
       contentTitle: json['contentTitle'] as String? ?? '',
@@ -162,6 +193,7 @@ class PracticeResults {
       techniqueScore: (metrics?['technique_score'] as num?)?.toDouble(),
       expectedNotes: expected,
       playedNotes: played,
+      techniqueHints: hints,
       createdAt: session?['created_at'] as String?,
     );
   }

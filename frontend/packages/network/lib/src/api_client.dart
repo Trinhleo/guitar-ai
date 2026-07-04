@@ -8,7 +8,10 @@ import 'models.dart';
 class ApiClient {
   ApiClient({String? baseUrl}) : baseUrl = baseUrl ?? _defaultBaseUrl;
 
-  static const _defaultBaseUrl = 'http://localhost:5000';
+  static const _defaultBaseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'http://localhost:5000',
+  );
 
   final String baseUrl;
   String? _token;
@@ -95,6 +98,25 @@ class ApiClient {
     return MusicalContent.fromJson(
       jsonDecode(response.body) as Map<String, dynamic>,
     );
+  }
+
+  Future<List<MusicalContent>> getRecommendations({
+    String instrument = 'guitar',
+    int limit = 3,
+  }) async {
+    final uri = Uri.parse('$baseUrl/api/content/recommendations').replace(
+      queryParameters: {
+        'instrument': instrument,
+        'limit': '$limit',
+      },
+    );
+    final response = await http.get(uri, headers: _jsonHeaders);
+    _ensureSuccess(response);
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    final items = body['items'] as List<dynamic>? ?? [];
+    return items
+        .map((item) => MusicalContent.fromJson(item as Map<String, dynamic>))
+        .toList();
   }
 
   Future<String> startPractice({

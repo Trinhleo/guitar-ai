@@ -1,4 +1,4 @@
-.PHONY: test migrate run smoke tidy frontend-test frontend-run docker-up docker-down
+.PHONY: test migrate run smoke tidy frontend-test frontend-run frontend-mobile-test docker-up docker-down e2e-test
 
 test:
 	cd backend && GO_ENV=test go test ./... -count=1
@@ -29,3 +29,6 @@ docker-up:
 
 docker-down:
 	docker compose down
+
+e2e-test:
+	./scripts/e2e.sh

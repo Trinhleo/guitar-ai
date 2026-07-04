@@ -157,6 +157,20 @@ make frontend-run
 # Open http://localhost:3000
 ```
 
+**3. Full stack (Docker — API + Postgres + Web)**
+
+```bash
+docker compose up -d --build
+# Web UI: http://localhost:3000
+# API:    http://localhost:5000
+```
+
+**4. E2E smoke tests (requires Postgres)**
+
+```bash
+make e2e-test
+```
+
 ---
 
 ## 🗄️ Database Schema

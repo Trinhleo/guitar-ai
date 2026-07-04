@@ -30,5 +30,15 @@ services:
         condition: service_healthy
     command: sh -c "./server migrate && ./server"
 
+  web:
+    build:
+      context: ./frontend
+      args:
+        API_BASE_URL: ""
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+
 volumes:
   pgdata:

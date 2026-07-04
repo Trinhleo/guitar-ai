@@ -42,6 +42,22 @@ class SessionDetailScreen extends StatelessWidget {
                 ScoreChip(label: 'Technique', value: results.techniqueScore!),
             ],
           ),
+          if (results.techniqueHints.isNotEmpty) ...[
+            const SizedBox(height: 24),
+            Text('Technique tips', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            ...results.techniqueHints.map(
+              (hint) => Card(
+                child: ListTile(
+                  leading: Icon(
+                    hint.severity == 'warning' ? Icons.warning_amber : Icons.lightbulb_outline,
+                    color: hint.severity == 'warning' ? Colors.orange : null,
+                  ),
+                  title: Text(hint.message),
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 32),
           Text('Expected notes', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),

@@ -586,3 +586,56 @@ func TestPracticeResultsIncludesPlayedNotes(t *testing.T) {
 		t.Fatal("expected expectedNotes in results")
 	}
 }
+
+func TestEvaluateIncludesTechniqueHints(t *testing.T) {
+	router := testRouter(t)
+	auth := registerUser(t, router, uniqueEmail("hints"), "password123")
+
+	startReq := httptest.NewRequest(http.MethodPost, "/api/practice/start/"+contentID, bytes.NewReader([]byte(`{}`)))
+	startReq.Header.Set("Content-Type", "application/json")
+	startReq.Header.Set("Authorization", authHeader(auth.Token))
+	startRec := httptest.NewRecorder()
+	router.ServeHTTP(startRec, startReq)
+
+	var startResp map[string]string
+	_ = json.Unmarshal(startRec.Body.Bytes(), &startResp)
+
+	evalBody, _ := json.Marshal(map[string]any{
+		"playedNotes": []evaluation.Note{
+			{Note: "E4", StartMs: 0, DurationMs: 500},
+		},
+	})
+	evalReq := httptest.NewRequest(http.MethodPost, "/api/practice/"+startResp["sessionId"]+"/evaluate", bytes.NewReader(evalBody))
+	evalReq.Header.Set("Content-Type", "application/json")
+	evalReq.Header.Set("Authorization", authHeader(auth.Token))
+	evalRec := httptest.NewRecorder()
+	router.ServeHTTP(evalRec, evalReq)
+
+	var body map[string]any
+	_ = json.Unmarshal(evalRec.Body.Bytes(), &body)
+	hints := body["techniqueHints"].([]any)
+	if len(hints) == 0 {
+		t.Fatal("expected techniqueHints in evaluate response")
+	}
+}
+
+func TestContentRecommendations(t *testing.T) {
+	router := testRouter(t)
+	auth := registerUser(t, router, uniqueEmail("recs"), "password123")
+
+	req := httptest.NewRequest(http.MethodGet, "/api/content/recommendations?instrument=guitar", nil)
+	req.Header.Set("Authorization", authHeader(auth.Token))
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+
+	var body map[string]any
+	_ = json.Unmarshal(rec.Body.Bytes(), &body)
+	items := body["items"].([]any)
+	if len(items) == 0 {
+		t.Fatal("expected recommendation items")
+	}
+}

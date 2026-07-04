@@ -75,11 +75,14 @@ void main() {
         'playedNotes': [
           {'note': 'E4', 'startMs': 0, 'durationMs': 500},
         ],
+        'techniqueHints': [
+          {'code': 'excellent', 'message': 'Great job!', 'severity': 'info'},
+        ],
       });
 
       expect(results.contentTitle, 'Open String Exercise');
       expect(results.playedNotes.length, 1);
-      expect(results.expectedNotes.length, 1);
+      expect(results.techniqueHints.length, 1);
     });
   });
 }

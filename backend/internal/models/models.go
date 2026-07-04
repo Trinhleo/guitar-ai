@@ -83,12 +83,13 @@ type EvaluateRequest struct {
 }
 
 type ResultsResponse struct {
-	Session       PracticeSession     `json:"session"`
-	ContentTitle  string              `json:"contentTitle"`
-	ContentType   string              `json:"contentType"`
-	Metrics       *PerformanceMetrics `json:"metrics"`
-	ExpectedNotes []evaluation.Note   `json:"expectedNotes"`
-	PlayedNotes   []evaluation.Note   `json:"playedNotes"`
+	Session        PracticeSession       `json:"session"`
+	ContentTitle   string                `json:"contentTitle"`
+	ContentType    string                `json:"contentType"`
+	Metrics        *PerformanceMetrics   `json:"metrics"`
+	ExpectedNotes  []evaluation.Note     `json:"expectedNotes"`
+	PlayedNotes    []evaluation.Note     `json:"playedNotes"`
+	TechniqueHints []evaluation.TechniqueHint `json:"techniqueHints,omitempty"`
 }
 
 type PracticeHistoryItem struct {
