@@ -6,10 +6,7 @@ COPY apps/app_web ./apps/app_web
 
 WORKDIR /app/apps/app_web
 ARG API_BASE_URL=
-ARG API_FALLBACK_URLS=
-RUN flutter pub get && flutter build web --release \
-  --dart-define=API_BASE_URL=${API_BASE_URL} \
-  --dart-define=API_FALLBACK_URLS=${API_FALLBACK_URLS}
+RUN flutter pub get && flutter build web --release --dart-define=API_BASE_URL=${API_BASE_URL}
 
 FROM nginx:1.27-alpine
 

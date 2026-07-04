@@ -79,8 +79,8 @@ make test
 make e2e-test
 ```
 
-## Dual deploy + fallback
+## Oracle CI/CD (GitHub Actions)
 
-Deploy Fly.io and VPS Docker in parallel; Flutter client auto-fails over between API URLs.
+Auto-deploy to Oracle VM after CI passes on `main`.
 
-→ **[DEPLOY_FALLBACK.md](./DEPLOY_FALLBACK.md)**
+→ **[DEPLOY_ORACLE_CI.md](./DEPLOY_ORACLE_CI.md)**

@@ -85,6 +85,18 @@ Requires `gh auth login` with `repo` scope.
 | Leaderboard API + UI | ✅ Done |
 | Drums instrument | ✅ Done |
 | Practice insights API | ✅ Done |
+| Oracle CI/CD (GitHub Actions) | ✅ Done |
+
+---
+
+## Deploy — Oracle CI/CD
+
+### #38 — GitHub Actions deploy to Oracle VM
+- **Priority:** P0 · **Area:** infra
+- **Acceptance:**
+  - [x] `deploy-oracle.yml` runs after CI passes on `main`
+  - [x] SSH deploy scripts + VM bootstrap doc
+  - [x] `docs/DEPLOY_ORACLE_CI.md` with secrets setup
 
 ---
 
