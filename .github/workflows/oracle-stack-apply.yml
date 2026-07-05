@@ -2,11 +2,13 @@ name: Oracle Stack Apply
 
 # Retry applying a saved OCI Resource Manager stack when Ampere A1 is out of capacity.
 # Stops immediately when VM is already RUNNING (scheduled runs become no-ops).
+#
+# TEMPORARILY DISABLED — re-enable: set apply-stack.if to true and uncomment schedule below.
 
 on:
-  schedule:
-    # Every 30 minutes — retries until VM exists (or job timeout)
-    - cron: "*/30 * * * *"
+  # schedule:
+  #   # Every 30 minutes — retries until VM exists (or job timeout)
+  #   - cron: "*/30 * * * *"
   workflow_dispatch:
     inputs:
       max_attempts:
@@ -24,6 +26,7 @@ concurrency:
 
 jobs:
   apply-stack:
+    if: false # TEMP DISABLED — remove this line (or set true) to re-enable
     runs-on: ubuntu-latest
     # Same environment as Deploy Oracle — secrets may live under Environment → production
     environment: production
